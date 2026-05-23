@@ -1,0 +1,67 @@
+/* ── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f4f7fb;
+  color: #334155;
+  font-size: 15px;
+}
+
+/* ── Scrollbar personalizada ─────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── PrimeNG overrides globales ──────────────────────────────────────── */
+.p-inputtext {
+  border-radius: 10px !important;
+  font-size: 0.9rem !important;
+}
+
+.p-inputtext:focus {
+  border-color: #2d7dd2 !important;
+  box-shadow: 0 0 0 3px rgba(45, 125, 210, 0.15) !important;
+}
+
+.p-button {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+}
+
+.btn-primary.p-button {
+  background: linear-gradient(135deg, #2d7dd2, #1a4a7a) !important;
+  border: none !important;
+}
+
+.btn-primary.p-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3d8de2, #2a5a8a) !important;
+  box-shadow: 0 4px 15px rgba(45, 125, 210, 0.4) !important;
+}
+
+.p-dropdown {
+  border-radius: 10px !important;
+}
+
+.p-dropdown-panel .p-dropdown-item {
+  font-size: 0.88rem !important;
+}
+
+.p-datatable .p-datatable-header { border-radius: 12px 12px 0 0 !important; }
+.p-datatable .p-datatable-thead > tr > th { font-size: 0.82rem !important; font-weight: 700 !important; }
+.p-datatable .p-datatable-tbody > tr > td { font-size: 0.88rem !important; }
+
+.p-confirm-dialog { border-radius: 16px !important; }
+.p-dialog         { border-radius: 16px !important; }
+
+.p-toast .p-toast-message { border-radius: 12px !important; }
+
+/* ── Utilities ───────────────────────────────────────────────────────── */
+.w-full  { width: 100% !important; }
+.h-full  { height: 100% !important; }
+.text-center { text-align: center; }

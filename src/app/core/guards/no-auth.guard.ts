@@ -1,0 +1,19 @@
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+/**
+ * Guard que evita que un usuario ya autenticado acceda al login.
+ * Redirige al dashboard si ya hay sesión activa.
+ */
+export const noAuthGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router      = inject(Router);
+
+  if (!authService.isLoggedIn()) {
+    return true;
+  }
+
+  router.navigate(['/dashboard']);
+  return false;
+};
