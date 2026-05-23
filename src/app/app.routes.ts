@@ -124,6 +124,63 @@ export const appRoutes: Routes = [
         ]
       },
 
+      // Historias Clínicas
+      {
+        path: 'historias',
+        canActivate: [roleGuard],
+        data: {
+          roles: [
+            'ROLE_SUPERADMINISTRADOR',
+            'ROLE_ADMINISTRADOR',
+            'ROLE_MEDICO_ESPECIALISTA',
+            'ROLE_PACIENTE'
+          ]
+        },
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/historias/historia-inicio/historia-inicio.component')
+                .then(m => m.HistoriaInicioComponent)
+          },
+          // Historia de un paciente — listado de consultas
+          {
+            path: 'paciente/:pacienteId',
+            loadComponent: () =>
+              import('./features/historias/historia-list/historia-list.component')
+                .then(m => m.HistoriaListComponent)
+          },
+          // Nueva consulta en una historia
+          {
+            path: ':historiaId/nueva-consulta',
+            loadComponent: () =>
+              import('./features/historias/historia-form/historia-form.component')
+                .then(m => m.HistoriaFormComponent)
+          },
+          // Editar antecedentes gineco-obstétricos
+          {
+            path: ':historiaId/antecedentes',
+            loadComponent: () =>
+              import('./features/historias/historia-form/historia-form.component')
+                .then(m => m.HistoriaFormComponent)
+          },
+          // Detalle de una consulta específica
+          {
+            path: 'consultas/:consultaId',
+            loadComponent: () =>
+              import('./features/historias/historia-detalle/historia-detalle.component')
+                .then(m => m.HistoriaDetalleComponent)
+          },
+          // Editar una consulta específica
+          {
+            path: 'consultas/:consultaId/editar',
+            loadComponent: () =>
+              import('./features/historias/historia-form/historia-form.component')
+                .then(m => m.HistoriaFormComponent)
+          },
+        ]
+      },
+
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

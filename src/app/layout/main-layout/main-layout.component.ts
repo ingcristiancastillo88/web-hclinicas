@@ -477,6 +477,17 @@ export class MainLayoutComponent {
       'ROLE_ADMINISTRADOR',
       'ROLE_MEDICO_ESPECIALISTA'
     ]
+  },
+  {
+    label: 'Historias Clínicas',
+    icon: 'pi-file-edit',
+    route: '/historias',
+    roles: [
+      'ROLE_SUPERADMINISTRADOR',
+      'ROLE_ADMINISTRADOR',
+      'ROLE_MEDICO_ESPECIALISTA',
+      'ROLE_PACIENTE'
+    ]
   }
 ]);
 
@@ -487,6 +498,7 @@ export class MainLayoutComponent {
   if (url.includes('usuarios'))   return 'Gestión de Usuarios';
   if (url.includes('roles'))      return 'Gestión de Roles';
   if (url.includes('auditoria'))  return 'Auditoría del Sistema';
+  if (url.includes('historias'))  return 'Historias Clínicas';
   if (url.includes('pacientes'))  return 'Gestión de Pacientes';
   return 'Sistema HClínicas';
 });
