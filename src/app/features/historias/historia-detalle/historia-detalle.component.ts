@@ -1,15 +1,16 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule }  from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ButtonModule }        from 'primeng/button';
-import { ToastModule }         from 'primeng/toast';
-import { SkeletonModule }      from 'primeng/skeleton';
-import { DividerModule }       from 'primeng/divider';
+import { ButtonModule } from 'primeng/button';
+import { ToastModule } from 'primeng/toast';
+import { SkeletonModule } from 'primeng/skeleton';
+import { DividerModule } from 'primeng/divider';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { TooltipModule }       from 'primeng/tooltip';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { HistoriaClinicaService } from '../../../core/services/historia-clinica.service';
 import { ArchivoAdjunto, ConsultaDetalle } from '../../../core/models/historia.models';
+import { DocumentoService } from '../../../core/services/documento.service';
 
 
 @Component({
@@ -40,17 +41,25 @@ import { ArchivoAdjunto, ConsultaDetalle } from '../../../core/models/historia.m
         </div>
       </div>
       <div class="header-actions">
-        @if (consulta()) {
-          <p-button label="Editar" icon="pi pi-pencil"
-                    severity="info" [outlined]="true"
-                    (onClick)="editar()" />
-          <p-button label="Eliminar" icon="pi pi-trash"
-                    severity="danger" [outlined]="true"
-                    (onClick)="confirmarEliminar()" />
-        }
-        <p-button label="Volver" icon="pi pi-arrow-left"
-                  [text]="true" severity="secondary" (onClick)="volver()" />
-      </div>
+      @if (consulta()) {
+        <p-button label="Ver PDF" icon="pi pi-eye"
+                  severity="secondary" [outlined]="true"
+                  [loading]="descargandoPdf()"
+                  (onClick)="previsualizarPdf()" />
+        <p-button label="Descargar PDF" icon="pi pi-file-pdf"
+                  severity="danger" [outlined]="true"
+                  [loading]="descargandoPdf()"
+                  (onClick)="descargarPdf()" />
+        <p-button label="Editar" icon="pi pi-pencil"
+                  severity="info" [outlined]="true"
+                  (onClick)="editar()" />
+        <p-button label="Eliminar" icon="pi pi-trash"
+                  severity="danger" [outlined]="true"
+                  (onClick)="confirmarEliminar()" />
+      }
+      <p-button label="Volver" icon="pi pi-arrow-left"
+                [text]="true" severity="secondary" (onClick)="volver()" />
+    </div>
     </div>
 
     @if (cargando()) {
@@ -200,7 +209,7 @@ import { ArchivoAdjunto, ConsultaDetalle } from '../../../core/models/historia.m
         }
 
         <!-- Archivos -->
-        @if (consulta()!.archivos?.length) {
+        @if (consulta()!.archivos.length) {
           <p-divider />
           <div class="blq-titulo" style="margin-bottom:1rem">
             <i class="pi pi-paperclip"></i>
@@ -288,14 +297,16 @@ import { ArchivoAdjunto, ConsultaDetalle } from '../../../core/models/historia.m
 })
 export class HistoriaDetalleComponent implements OnInit {
 
-  private route   = inject(ActivatedRoute);
-  private router  = inject(Router);
-  private hSvc    = inject(HistoriaClinicaService);
-  private toast   = inject(MessageService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private hSvc = inject(HistoriaClinicaService);
+  private toast = inject(MessageService);
   private confirm = inject(ConfirmationService);
+  private docService = inject(DocumentoService);
 
   consulta = signal<ConsultaDetalle | null>(null);
   cargando = signal(false);
+  descargandoPdf = signal(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('consultaId');
@@ -308,7 +319,7 @@ export class HistoriaDetalleComponent implements OnInit {
     this.hSvc.obtenerConsulta(id).subscribe({
       next: r => { this.consulta.set(r.data); this.cargando.set(false); },
       error: () => {
-        this.toast.add({ severity:'error', summary:'Error', detail:'No se pudo cargar la consulta' });
+        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar la consulta' });
         this.router.navigate(['/historias']);
       }
     });
@@ -318,7 +329,7 @@ export class HistoriaDetalleComponent implements OnInit {
     const c = this.consulta();
     if (!c) return false;
     return !!(c.peso || c.talla || c.presionArterial || c.frecuenciaCardiaca
-           || c.temperatura || c.saturacionOxigeno || c.semanasGestacion);
+      || c.temperatura || c.saturacionOxigeno || c.semanasGestacion);
   }
 
   editar(): void {
@@ -336,7 +347,7 @@ export class HistoriaDetalleComponent implements OnInit {
       accept: () => {
         this.hSvc.eliminarConsulta(this.consulta()!.id).subscribe({
           next: () => {
-            this.toast.add({ severity:'warn', summary:'Eliminado', detail:'Consulta eliminada' });
+            this.toast.add({ severity: 'warn', summary: 'Eliminado', detail: 'Consulta eliminada' });
             this.volver();
           }
         });
@@ -355,7 +366,7 @@ export class HistoriaDetalleComponent implements OnInit {
       accept: () => {
         this.hSvc.eliminarArchivo(a.id).subscribe({
           next: () => {
-            this.toast.add({ severity:'warn', summary:'Eliminado', detail:'Archivo eliminado' });
+            this.toast.add({ severity: 'warn', summary: 'Eliminado', detail: 'Archivo eliminado' });
             this.cargar(this.consulta()!.id);
           }
         });
@@ -379,8 +390,8 @@ export class HistoriaDetalleComponent implements OnInit {
     const v = this.consulta()?.imc;
     if (!v) return '';
     if (v < 18.5) return 'bajo';
-    if (v < 25)   return 'normal';
-    if (v < 30)   return 'sobrepeso';
+    if (v < 25) return 'normal';
+    if (v < 30) return 'sobrepeso';
     return 'obesidad';
   }
 
@@ -388,22 +399,60 @@ export class HistoriaDetalleComponent implements OnInit {
     const v = this.consulta()?.imc;
     if (!v) return '';
     if (v < 18.5) return 'Bajo peso';
-    if (v < 25)   return 'Normal';
-    if (v < 30)   return 'Sobrepeso';
+    if (v < 25) return 'Normal';
+    if (v < 30) return 'Sobrepeso';
     return 'Obesidad';
   }
 
   getIcon(a: ArchivoAdjunto): string {
     const m = a.tipoMime ?? '';
     if (m.includes('image')) return 'pi-image';
-    if (m.includes('pdf'))   return 'pi-file-pdf';
+    if (m.includes('pdf')) return 'pi-file-pdf';
     if (m.includes('word') || m.includes('docx')) return 'pi-file-word';
     return 'pi-file';
   }
 
   formatBytes(b: number): string {
-    if (b < 1024)     return b + ' B';
-    if (b < 1048576)  return (b/1024).toFixed(1) + ' KB';
-    return (b/1048576).toFixed(1) + ' MB';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  descargarPdf(): void {
+    const c = this.consulta();
+    if (!c) return;
+    this.descargandoPdf.set(true);
+    this.docService.descargarConsulta(c.id).subscribe({
+      next: blob => {
+        this.docService.abrirPdf(blob, `consulta_${c.id}.pdf`);
+        this.descargandoPdf.set(false);
+      },
+      error: () => {
+        this.toast.add({
+          severity: 'error', summary: 'Error',
+          detail: 'No se pudo generar el PDF'
+        });
+        this.descargandoPdf.set(false);
+      }
+    });
+  }
+
+  previsualizarPdf(): void {
+    const c = this.consulta();
+    if (!c) return;
+    this.descargandoPdf.set(true);
+    this.docService.descargarConsulta(c.id).subscribe({
+      next: blob => {
+        this.docService.previsualizarPdf(blob);
+        this.descargandoPdf.set(false);
+      },
+      error: () => {
+        this.toast.add({
+          severity: 'error', summary: 'Error',
+          detail: 'No se pudo generar el PDF'
+        });
+        this.descargandoPdf.set(false);
+      }
+    });
   }
 }

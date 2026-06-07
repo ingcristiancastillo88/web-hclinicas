@@ -1,16 +1,17 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { ButtonModule }        from 'primeng/button';
-import { ToastModule }         from 'primeng/toast';
-import { SkeletonModule }      from 'primeng/skeleton';
+import { ButtonModule } from 'primeng/button';
+import { ToastModule } from 'primeng/toast';
+import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { TooltipModule }       from 'primeng/tooltip';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { HistoriaClinicaService } from '../../../core/services/historia-clinica.service';
 import { PacienteService } from '../../../core/services/paciente.service';
 import { ConsultaResumen, HistoriaClinica } from '../../../core/models/historia.models';
 import { Paciente } from '../../../core/models';
+import { DocumentoService } from '../../../core/services/documento.service';
 
 
 @Component({
@@ -56,6 +57,10 @@ import { Paciente } from '../../../core/models';
           <p-button label="Editar Antecedentes" icon="pi pi-heart"
                     [outlined]="true" severity="info"
                     (onClick)="editarAntecedentes()" />
+                    <p-button label="Descargar Historia" icon="pi pi-file-pdf"
+                severity="danger" [outlined]="true"
+                [loading]="descargandoPdf()"
+                (onClick)="descargarPdfHistoria()" />
         }
         <p-button label="Volver" icon="pi pi-arrow-left"
                   [text]="true" severity="secondary"
@@ -282,27 +287,29 @@ import { Paciente } from '../../../core/models';
 })
 export class HistoriaListComponent implements OnInit {
 
-  router          = inject(Router);
-  private route   = inject(ActivatedRoute);
-  private hSvc    = inject(HistoriaClinicaService);
-  private pSvc    = inject(PacienteService);
-  private toast   = inject(MessageService);
+  router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private hSvc = inject(HistoriaClinicaService);
+  private pSvc = inject(PacienteService);
+  private toast = inject(MessageService);
   private confirm = inject(ConfirmationService);
-
-  historia    = signal<HistoriaClinica | null>(null);
-  paciente    = signal<Paciente | null>(null);
-  consultas   = signal<ConsultaResumen[]>([]);
-  cargando    = signal(false);
+  private docService = inject(DocumentoService);
+  historia = signal<HistoriaClinica | null>(null);
+  paciente = signal<Paciente | null>(null);
+  consultas = signal<ConsultaResumen[]>([]);
+  cargando = signal(false);
   cargandoMas = signal(false);
   sinHistoria = signal(false);
-  ultima      = signal(true);
-  pagina      = 0;
+  ultima = signal(true);
+  pagina = 0;
+  descargandoPdf = signal(false);
+
 
   tieneAntecedentes = computed(() => {
     const h = this.historia();
     if (!h) return false;
     return !!(h.gestas != null || h.partos != null || h.cesareas != null
-           || h.metodoAnticonceptivo || h.fechaUltimaMenstruacion);
+      || h.metodoAnticonceptivo || h.fechaUltimaMenstruacion);
   });
 
   ngOnInit(): void {
@@ -323,8 +330,10 @@ export class HistoriaListComponent implements OnInit {
       },
       error: err => {
         if (err.status === 404) this.sinHistoria.set(true);
-        else this.toast.add({ severity:'error', summary:'Error',
-          detail:'No se pudo cargar la historia' });
+        else this.toast.add({
+          severity: 'error', summary: 'Error',
+          detail: 'No se pudo cargar la historia'
+        });
         this.cargando.set(false);
       }
     });
@@ -335,7 +344,7 @@ export class HistoriaListComponent implements OnInit {
       next: r => {
         const items = r.data?.contenido ?? [];
         acumular ? this.consultas.update(p => [...p, ...items])
-                 : this.consultas.set(items);
+          : this.consultas.set(items);
         this.ultima.set(r.data?.ultima ?? true);
         this.cargando.set(false);
         this.cargandoMas.set(false);
@@ -380,7 +389,7 @@ export class HistoriaListComponent implements OnInit {
 
   confirmarEliminar(c: ConsultaResumen): void {
     const fecha = new Date(c.fechaConsulta + 'T00:00:00')
-      .toLocaleDateString('es-EC', { day:'2-digit', month:'long', year:'numeric' });
+      .toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' });
     this.confirm.confirm({
       message: `¿Eliminar la consulta del <strong>${fecha}</strong>?`,
       header: 'Confirmar eliminación',
@@ -391,13 +400,37 @@ export class HistoriaListComponent implements OnInit {
       accept: () => {
         this.hSvc.eliminarConsulta(c.id).subscribe({
           next: () => {
-            this.toast.add({ severity:'warn', summary:'Eliminado',
-              detail:'Consulta eliminada exitosamente' });
+            this.toast.add({
+              severity: 'warn', summary: 'Eliminado',
+              detail: 'Consulta eliminada exitosamente'
+            });
             this.pagina = 0;
             const h = this.historia();
             if (h) this.cargarConsultas(h.id, false);
           }
         });
+      }
+    });
+  }
+
+  descargarPdfHistoria(): void {
+    const h = this.historia();
+    if (!h) return;
+    this.descargandoPdf.set(true);
+    this.docService.descargarHistoria(h.id).subscribe({
+      next: blob => {
+        this.docService.abrirPdf(
+          blob,
+          `historia_clinica_${h.pacienteNombreCompleto.replace(' ', '_')}.pdf`
+        );
+        this.descargandoPdf.set(false);
+      },
+      error: () => {
+        this.toast.add({
+          severity: 'error', summary: 'Error',
+          detail: 'No se pudo generar el PDF de historia'
+        });
+        this.descargandoPdf.set(false);
       }
     });
   }

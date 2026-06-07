@@ -128,8 +128,10 @@ export const appRoutes: Routes = [
       {
         path: 'historias',
         canActivate: [roleGuard],
-        data: { roles: ['ROLE_SUPERADMINISTRADOR','ROLE_ADMINISTRADOR',
-                      'ROLE_MEDICO_ESPECIALISTA','ROLE_PACIENTE'] },
+        data: {
+          roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR',
+            'ROLE_MEDICO_ESPECIALISTA', 'ROLE_PACIENTE']
+        },
         children: [
           { path: '', loadComponent: () => import('./features/historias/historia-inicio/historia-inicio.component').then(m => m.HistoriaInicioComponent) },
           { path: 'paciente/:pacienteId', loadComponent: () => import('./features/historias/historia-list/historia-list.component').then(m => m.HistoriaListComponent) },
@@ -150,29 +152,19 @@ export const appRoutes: Routes = [
           ]
         },
         children: [
+          // El calendario ES la vista principal ahora
           {
             path: '',
             loadComponent: () =>
-              import('./features/citas/cita-list/cita-list.component')
-                .then(m => m.CitaListComponent)
-          },
-          {
-            path: 'nueva',
-            loadComponent: () =>
-              import('./features/citas/cita-form/cita-form.component')
-                .then(m => m.CitaFormComponent)
-          },
-          {
-            path: ':citaId/editar',
-            loadComponent: () =>
-              import('./features/citas/cita-form/cita-form.component')
-                .then(m => m.CitaFormComponent)
-          },
-          {
-            path: 'calendario',
-            loadComponent: () =>
               import('./features/citas/cita-calendario/cita-calendario.component')
                 .then(m => m.CitaCalendarioComponent)
+          },
+          // Vista de detalle de cita individual (sigue existiendo)
+          {
+            path: ':citaId',
+            loadComponent: () =>
+              import('./features/citas/cita-form/cita-form.component')
+                .then(m => m.CitaFormComponent)
           }
         ]
       },
