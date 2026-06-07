@@ -1,3 +1,12 @@
+// ── Tipos auxiliares ──────────────────────────────────────────────────────
+export type TipoArchivo =
+  | 'IMAGEN'
+  | 'DOCUMENTO'
+  | 'RECETA'
+  | 'RESULTADO_LABORATORIO'
+  | 'ECOGRAFIA'
+  | 'OTRO';
+
 // ── Historia Clínica ──────────────────────────────────────────────────────
 export interface HistoriaClinica {
   id: number;
@@ -73,12 +82,12 @@ export interface ConsultaDetalle {
   motivoConsulta: string;
   peso?: number;
   talla?: number;
+  imc?: number;
   presionArterial?: string;
   frecuenciaCardiaca?: number;
   temperatura?: number;
   saturacionOxigeno?: number;
   semanasGestacion?: number;
-  imc?: number;
   examenFisico?: string;
   diagnosticoPrincipal: string;
   diagnosticoSecundario?: string;
@@ -118,13 +127,5 @@ export interface CrearConsultaRequest {
   observaciones?: string;
 }
 
-export type ActualizarConsultaRequest = Omit<CrearConsultaRequest,
-  'historiaClinicaId'>;
-
-export type TipoArchivo =
-  | 'IMAGEN'
-  | 'DOCUMENTO'
-  | 'RECETA'
-  | 'RESULTADO_LABORATORIO'
-  | 'ECOGRAFIA'
-  | 'OTRO';
+export type ActualizarConsultaRequest =
+  Omit<CrearConsultaRequest, 'historiaClinicaId'>;

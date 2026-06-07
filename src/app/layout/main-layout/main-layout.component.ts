@@ -488,6 +488,16 @@ export class MainLayoutComponent {
       'ROLE_MEDICO_ESPECIALISTA',
       'ROLE_PACIENTE'
     ]
+  },
+  {
+    label: 'Citas Médicas',
+    icon: 'pi-calendar',
+    route: '/citas',
+    roles: [
+      'ROLE_SUPERADMINISTRADOR',
+      'ROLE_ADMINISTRADOR',
+      'ROLE_MEDICO_ESPECIALISTA'
+    ]
   }
 ]);
 
@@ -500,6 +510,7 @@ export class MainLayoutComponent {
   if (url.includes('auditoria'))  return 'Auditoría del Sistema';
   if (url.includes('historias'))  return 'Historias Clínicas';
   if (url.includes('pacientes'))  return 'Gestión de Pacientes';
+  if (url.includes('citas')) return 'Citas Médicas';
   return 'Sistema HClínicas';
 });
 

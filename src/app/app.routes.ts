@@ -128,59 +128,54 @@ export const appRoutes: Routes = [
       {
         path: 'historias',
         canActivate: [roleGuard],
+        data: { roles: ['ROLE_SUPERADMINISTRADOR','ROLE_ADMINISTRADOR',
+                      'ROLE_MEDICO_ESPECIALISTA','ROLE_PACIENTE'] },
+        children: [
+          { path: '', loadComponent: () => import('./features/historias/historia-inicio/historia-inicio.component').then(m => m.HistoriaInicioComponent) },
+          { path: 'paciente/:pacienteId', loadComponent: () => import('./features/historias/historia-list/historia-list.component').then(m => m.HistoriaListComponent) },
+          { path: 'antecedentes', loadComponent: () => import('./features/historias/historia-antecedentes/historia-antecedentes.component').then(m => m.HistoriaAntecedentesComponent) },
+          { path: 'consultas/nueva', loadComponent: () => import('./features/historias/historia-form/historia-form.component').then(m => m.HistoriaFormComponent) },
+          { path: 'consultas/:consultaId', loadComponent: () => import('./features/historias/historia-detalle/historia-detalle.component').then(m => m.HistoriaDetalleComponent) },
+          { path: 'consultas/:consultaId/editar', loadComponent: () => import('./features/historias/historia-form/historia-form.component').then(m => m.HistoriaFormComponent) },
+        ]
+      },
+      {
+        path: 'citas',
+        canActivate: [roleGuard],
         data: {
           roles: [
             'ROLE_SUPERADMINISTRADOR',
             'ROLE_ADMINISTRADOR',
-            'ROLE_MEDICO_ESPECIALISTA',
-            'ROLE_PACIENTE'
+            'ROLE_MEDICO_ESPECIALISTA'
           ]
         },
         children: [
           {
             path: '',
             loadComponent: () =>
-              import('./features/historias/historia-inicio/historia-inicio.component')
-                .then(m => m.HistoriaInicioComponent)
+              import('./features/citas/cita-list/cita-list.component')
+                .then(m => m.CitaListComponent)
           },
-          // Historia de un paciente — listado de consultas
           {
-            path: 'paciente/:pacienteId',
+            path: 'nueva',
             loadComponent: () =>
-              import('./features/historias/historia-list/historia-list.component')
-                .then(m => m.HistoriaListComponent)
+              import('./features/citas/cita-form/cita-form.component')
+                .then(m => m.CitaFormComponent)
           },
-          // Nueva consulta en una historia
           {
-            path: ':historiaId/nueva-consulta',
+            path: ':citaId/editar',
             loadComponent: () =>
-              import('./features/historias/historia-form/historia-form.component')
-                .then(m => m.HistoriaFormComponent)
+              import('./features/citas/cita-form/cita-form.component')
+                .then(m => m.CitaFormComponent)
           },
-          // Editar antecedentes gineco-obstétricos
           {
-            path: ':historiaId/antecedentes',
+            path: 'calendario',
             loadComponent: () =>
-              import('./features/historias/historia-form/historia-form.component')
-                .then(m => m.HistoriaFormComponent)
-          },
-          // Detalle de una consulta específica
-          {
-            path: 'consultas/:consultaId',
-            loadComponent: () =>
-              import('./features/historias/historia-detalle/historia-detalle.component')
-                .then(m => m.HistoriaDetalleComponent)
-          },
-          // Editar una consulta específica
-          {
-            path: 'consultas/:consultaId/editar',
-            loadComponent: () =>
-              import('./features/historias/historia-form/historia-form.component')
-                .then(m => m.HistoriaFormComponent)
-          },
+              import('./features/citas/cita-calendario/cita-calendario.component')
+                .then(m => m.CitaCalendarioComponent)
+          }
         ]
       },
-
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

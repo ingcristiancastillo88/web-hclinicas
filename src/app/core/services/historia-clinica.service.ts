@@ -2,35 +2,31 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ActualizarConsultaRequest, ConsultaDetalle, ConsultaResumen, CrearConsultaRequest, CrearHistoriaClinicaRequest, HistoriaClinica } from '../models/historias.models';
+import { ActualizarConsultaRequest, ConsultaDetalle, ConsultaResumen, CrearConsultaRequest, CrearHistoriaClinicaRequest, HistoriaClinica } from '../models/historia.models';
 import { ApiResponse, PageResponse } from '../models';
 
 
 @Injectable({ providedIn: 'root' })
 export class HistoriaClinicaService {
 
-  private readonly apiUrl = `${environment.apiUrl}/historias`;
+  private readonly url = `${environment.apiUrl}/historias`;
 
   constructor(private http: HttpClient) {}
 
   // ── Historia ──────────────────────────────────────────────────────────────
   crearOActualizar(
-    request: CrearHistoriaClinicaRequest
+    req: CrearHistoriaClinicaRequest
   ): Observable<ApiResponse<HistoriaClinica>> {
-    return this.http.post<ApiResponse<HistoriaClinica>>(this.apiUrl, request);
-  }
-
-  obtenerPorPaciente(
-    pacienteId: number
-  ): Observable<ApiResponse<HistoriaClinica>> {
-    return this.http.get<ApiResponse<HistoriaClinica>>(
-      `${this.apiUrl}/paciente/${pacienteId}`
-    );
+    return this.http.post<ApiResponse<HistoriaClinica>>(this.url, req);
   }
 
   obtenerPorId(id: number): Observable<ApiResponse<HistoriaClinica>> {
+    return this.http.get<ApiResponse<HistoriaClinica>>(`${this.url}/${id}`);
+  }
+
+  obtenerPorPaciente(pacienteId: number): Observable<ApiResponse<HistoriaClinica>> {
     return this.http.get<ApiResponse<HistoriaClinica>>(
-      `${this.apiUrl}/${id}`
+      `${this.url}/paciente/${pacienteId}`
     );
   }
 
@@ -42,38 +38,34 @@ export class HistoriaClinicaService {
       .set('pagina', pagina)
       .set('tamano', tamano);
     return this.http.get<ApiResponse<PageResponse<ConsultaResumen>>>(
-      `${this.apiUrl}/${historiaId}/consultas`, { params }
+      `${this.url}/${historiaId}/consultas`, { params }
     );
   }
 
   crearConsulta(
-    request: CrearConsultaRequest
+    req: CrearConsultaRequest
   ): Observable<ApiResponse<ConsultaDetalle>> {
     return this.http.post<ApiResponse<ConsultaDetalle>>(
-      `${this.apiUrl}/consultas`, request
+      `${this.url}/consultas`, req
     );
   }
 
-  obtenerConsulta(
-    consultaId: number
-  ): Observable<ApiResponse<ConsultaDetalle>> {
+  obtenerConsulta(id: number): Observable<ApiResponse<ConsultaDetalle>> {
     return this.http.get<ApiResponse<ConsultaDetalle>>(
-      `${this.apiUrl}/consultas/${consultaId}`
+      `${this.url}/consultas/${id}`
     );
   }
 
   actualizarConsulta(
-    consultaId: number, request: ActualizarConsultaRequest
+    id: number, req: ActualizarConsultaRequest
   ): Observable<ApiResponse<ConsultaDetalle>> {
     return this.http.put<ApiResponse<ConsultaDetalle>>(
-      `${this.apiUrl}/consultas/${consultaId}`, request
+      `${this.url}/consultas/${id}`, req
     );
   }
 
-  eliminarConsulta(consultaId: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(
-      `${this.apiUrl}/consultas/${consultaId}`
-    );
+  eliminarConsulta(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.url}/consultas/${id}`);
   }
 
   // ── Archivos ──────────────────────────────────────────────────────────────
@@ -83,19 +75,18 @@ export class HistoriaClinicaService {
     tipoArchivo: string,
     descripcion: string
   ): Observable<ApiResponse<void>> {
-    const formData = new FormData();
-    formData.append('archivo', file);
-    formData.append('tipoArchivo', tipoArchivo);
-    if (descripcion) formData.append('descripcion', descripcion);
-
+    const form = new FormData();
+    form.append('archivo',      file);
+    form.append('tipoArchivo',  tipoArchivo);
+    if (descripcion) form.append('descripcion', descripcion);
     return this.http.post<ApiResponse<void>>(
-      `${this.apiUrl}/consultas/${consultaId}/archivos`, formData
+      `${this.url}/consultas/${consultaId}/archivos`, form
     );
   }
 
   eliminarArchivo(archivoId: number): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(
-      `${this.apiUrl}/archivos/${archivoId}`
+      `${this.url}/archivos/${archivoId}`
     );
   }
 }
