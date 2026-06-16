@@ -165,7 +165,7 @@ import { PacienteResumen } from '../../../core/models';
             <i [class]="'pi ' + (disponibilidad()!.disponible ? 'pi-check-circle' : 'pi-times-circle')"></i>
             <div class="disp-info">
               <span class="disp-msg">{{ disponibilidad()!.mensaje }}</span>
-              @if (!disponibilidad()!.disponible && disponibilidad()!.slotsOcupados?.length) {
+              @if (!disponibilidad()!.disponible && disponibilidad()!.slotsOcupados.length) {
                 <div class="slots-ocupados">
                   <span class="slots-titulo">Citas del día:</span>
                   @for (s of disponibilidad()!.slotsOcupados; track s.horaInicio) {

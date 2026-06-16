@@ -52,6 +52,7 @@ export interface Rol {
 export type EstadoUsuario = 'ACTIVO' | 'INACTIVO' | 'ELIMINADO';
 
 export interface Usuario {
+  tipoDocumento: string;
   id: number;
   nombres: string;
   apellidos: string;
@@ -133,6 +134,7 @@ export interface PacienteResumen {
 }
 
 export interface Paciente {
+  tipoDocumento: string;
   id: number;
   cedula: string;
   historiaNumero?: string;

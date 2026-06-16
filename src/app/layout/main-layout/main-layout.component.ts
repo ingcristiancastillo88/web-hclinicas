@@ -36,7 +36,7 @@ type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
           <div class="logo-icon">
             <i class="pi pi-heart-fill"></i>
           </div>
-          <span class="logo-text">HClínicas</span>
+          <span class="logo-text">San Juan</span>
         </div>
 
         <!-- Nav items -->
