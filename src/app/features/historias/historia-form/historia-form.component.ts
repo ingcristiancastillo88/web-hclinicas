@@ -1,7 +1,8 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule,
+  FormsModule, FormArray } from '@angular/forms';
 import { InputTextModule }     from 'primeng/inputtext';
 import { InputTextareaModule } from 'primeng/inputtextarea';
 import { InputNumberModule }   from 'primeng/inputnumber';
@@ -12,8 +13,19 @@ import { FileUploadModule }    from 'primeng/fileupload';
 import { DropdownModule }      from 'primeng/dropdown';
 import { ToastModule }         from 'primeng/toast';
 import { DividerModule }       from 'primeng/divider';
+import { DialogModule }        from 'primeng/dialog';
+import { TableModule }         from 'primeng/table';
+import { TooltipModule }       from 'primeng/tooltip';
 import { MessageService }      from 'primeng/api';
 import { HistoriaClinicaService } from '../../../core/services/historia-clinica.service';
+import { DocumentoService }       from '../../../core/services/documento.service';
+
+interface Medicamento {
+  nombre: string;
+  dosis: string;
+  cantidad: string;
+  indicaciones: string;
+}
 
 @Component({
   selector: 'app-historia-form',
@@ -22,12 +34,14 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
     CommonModule, ReactiveFormsModule, FormsModule,
     InputTextModule, InputTextareaModule, InputNumberModule,
     CalendarModule, ButtonModule, TabViewModule,
-    FileUploadModule, DropdownModule, ToastModule, DividerModule
+    FileUploadModule, DropdownModule, ToastModule,
+    DividerModule, DialogModule, TableModule, TooltipModule
   ],
   providers: [MessageService],
   template: `
     <p-toast />
 
+    <!-- ── Header ── -->
     <div class="page-header">
       <div class="page-title">
         <div class="page-icon">
@@ -35,18 +49,30 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
         </div>
         <div>
           <h2>{{ esEdicion() ? 'Editar Consulta' : 'Nueva Consulta' }}</h2>
-          <p>{{ esEdicion() ? 'Actualiza los datos de la consulta' : 'Registra una nueva consulta médica' }}</p>
+          <p>{{ esEdicion() ? 'Actualiza los datos de la consulta'
+                            : 'Registra una nueva consulta médica' }}</p>
         </div>
       </div>
-      <p-button label="Cancelar" icon="pi pi-times"
-                [text]="true" severity="secondary" (onClick)="volver()" />
+      <div class="header-actions">
+        <!-- Botón Generar Receta (solo en edición) -->
+        @if (esEdicion()) {
+          <p-button label="Generar Receta" icon="pi pi-file-edit"
+                    styleClass="btn-receta"
+                    pTooltip="Generar receta médica para esta consulta"
+                    tooltipPosition="bottom"
+                    (onClick)="abrirReceta()" />
+        }
+        <p-button label="Cancelar" icon="pi pi-times"
+                  [text]="true" severity="secondary" (onClick)="volver()" />
+      </div>
     </div>
 
+    <!-- ── Formulario ── -->
     <div class="form-card">
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <p-tabView styleClass="form-tabs">
 
-          <!-- Tab 1: Datos Generales + Signos Vitales -->
+          <!-- ══ Tab 1: Datos Generales + Signos Vitales ══ -->
           <p-tabPanel>
             <ng-template pTemplate="header">
               <span><i class="pi pi-calendar tab-i"></i>Datos Generales</span>
@@ -132,7 +158,7 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
             </div>
           </p-tabPanel>
 
-          <!-- Tab 2: Diagnóstico y Tratamiento -->
+          <!-- ══ Tab 2: Diagnóstico y Tratamiento ══ -->
           <p-tabPanel>
             <ng-template pTemplate="header">
               <span><i class="pi pi-check-circle tab-i"></i>Diagnóstico</span>
@@ -146,7 +172,6 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
                           placeholder="Hallazgos del examen físico...">
                 </textarea>
               </div>
-
               <div class="field req-field">
                 <label>Diagnóstico Principal <span class="req">*</span></label>
                 <textarea pInputTextarea formControlName="diagnosticoPrincipal"
@@ -157,7 +182,6 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
                   <small class="err"><i class="pi pi-exclamation-circle"></i> Obligatorio</small>
                 }
               </div>
-
               <div class="field">
                 <label>Diagnóstico Secundario</label>
                 <textarea pInputTextarea formControlName="diagnosticoSecundario"
@@ -165,7 +189,6 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
                           placeholder="Diagnóstico secundario (si aplica)...">
                 </textarea>
               </div>
-
               <div class="field" style="max-width:220px">
                 <label>Código CIE-10</label>
                 <input pInputText formControlName="codigoCie10"
@@ -181,7 +204,8 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
               <div class="field">
                 <label>Tratamiento Indicado</label>
                 <textarea pInputTextarea formControlName="tratamiento"
-                          rows="3" class="w-full" placeholder="Tratamiento indicado...">
+                          rows="3" class="w-full"
+                          placeholder="Tratamiento indicado...">
                 </textarea>
               </div>
               <div class="field">
@@ -215,98 +239,272 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
             </div>
           </p-tabPanel>
 
-          <!-- Tab 3: Archivos (solo en edición) -->
-          @if (esEdicion()) {
-            <p-tabPanel>
-              <ng-template pTemplate="header">
-                <span>
-                  <i class="pi pi-paperclip tab-i"></i>Archivos
-                  @if (archivosSubidos() > 0) {
-                    <span class="tab-bdg">{{ archivosSubidos() }}</span>
-                  }
-                </span>
-              </ng-template>
+          <!-- ══ Tab 3: Archivos Adjuntos (siempre visible) ══ -->
+          <p-tabPanel>
+            <ng-template pTemplate="header">
+              <span>
+                <i class="pi pi-paperclip tab-i"></i>Archivos
+                @if (archivosSubidos() > 0) {
+                  <span class="tab-bdg">{{ archivosSubidos() }}</span>
+                }
+              </span>
+            </ng-template>
 
-              <p-fileUpload mode="advanced" [multiple]="true"
-                            accept=".jpg,.jpeg,.png,.pdf,.docx,.doc,.xlsx"
-                            [maxFileSize]="10485760"
-                            chooseLabel="Seleccionar" uploadLabel="Subir"
-                            cancelLabel="Cancelar"
-                            (onSelect)="onFileSelect($event)"
-                            (onClear)="archivosSeleccionados.set([])"
-                            styleClass="upload-cust">
+            @if (!esEdicion()) {
+              <!-- Aviso en creación -->
+              <div class="aviso-archivos">
+                <i class="pi pi-info-circle"></i>
+                <span>Guarda primero la consulta para poder adjuntar archivos.</span>
+              </div>
+            } @else {
+              <!-- Tipos de archivo permitidos -->
+              <div class="tipos-info">
+                <div class="tipo-chip"><i class="pi pi-image"></i> Imágenes</div>
+                <div class="tipo-chip"><i class="pi pi-file-pdf"></i> PDF</div>
+                <div class="tipo-chip"><i class="pi pi-file"></i> Documentos</div>
+                <div class="tipo-chip"><i class="pi pi-heart"></i> Ecografías</div>
+                <div class="tipo-chip"><i class="pi pi-flask"></i> Laboratorio</div>
+              </div>
+
+              <p-fileUpload
+                mode="advanced"
+                [multiple]="true"
+                accept=".jpg,.jpeg,.png,.pdf,.docx,.doc,.xlsx"
+                [maxFileSize]="10485760"
+                chooseLabel="Seleccionar Archivos"
+                uploadLabel="Subir"
+                cancelLabel="Limpiar"
+                (onSelect)="onFileSelect($event)"
+                (onClear)="archivosSeleccionados.set([])"
+                styleClass="upload-cust">
                 <ng-template pTemplate="empty">
                   <div class="upload-ph">
                     <i class="pi pi-cloud-upload"></i>
-                    <p>Arrastra archivos o haz clic para seleccionar</p>
-                    <small>JPG, PNG, PDF, DOCX, XLSX · Máx. 10 MB</small>
+                    <p>Arrastra los archivos aquí o haz clic en <strong>Seleccionar Archivos</strong></p>
+                    <small>JPG, PNG, PDF, DOCX, XLSX · Máximo 10 MB por archivo</small>
                   </div>
                 </ng-template>
               </p-fileUpload>
 
               @if (archivosSeleccionados().length > 0) {
                 <div class="upload-actions">
-                  <div class="field" style="min-width:200px">
-                    <label>Tipo de archivo</label>
+                  <div class="field" style="min-width:220px">
+                    <label>Categoría del archivo</label>
                     <p-dropdown
                       [(ngModel)]="tipoArchivo"
                       [ngModelOptions]="{standalone:true}"
-                      [options]="opTipos" optionLabel="label" optionValue="value"
+                      [options]="opTipos"
+                      optionLabel="label" optionValue="value"
+                      placeholder="Selecciona categoría"
                       styleClass="w-full" />
                   </div>
                   <p-button
                     [label]="'Subir ' + archivosSeleccionados().length + ' archivo(s)'"
-                    icon="pi pi-upload" styleClass="btn-primary"
-                    [loading]="subiendo()" (onClick)="subirArchivos()" />
+                    icon="pi pi-upload"
+                    styleClass="btn-pink"
+                    [loading]="subiendo()"
+                    (onClick)="subirArchivos()" />
                 </div>
               }
-            </p-tabPanel>
-          }
+
+              <!-- Lista de archivos ya subidos -->
+              @if (archivosSubidos() > 0) {
+                <div class="archivos-subidos-info">
+                  <i class="pi pi-check-circle"></i>
+                  {{ archivosSubidos() }} archivo(s) adjunto(s) a esta consulta
+                </div>
+              }
+            }
+          </p-tabPanel>
 
         </p-tabView>
 
+        <!-- Botones del formulario -->
         <div class="form-actions">
           <p-button label="Cancelar" icon="pi pi-times"
                     severity="secondary" [outlined]="true" (onClick)="volver()" />
-          <p-button type="submit"
-                    [label]="esEdicion() ? 'Guardar Cambios' : 'Registrar Consulta'"
-                    [icon]="esEdicion() ? 'pi pi-save' : 'pi pi-check'"
-                    [loading]="guardando()"
-                    [disabled]="form.invalid || guardando()"
-                    styleClass="btn-primary" />
+          <p-button
+            type="submit"
+            [label]="esEdicion() ? 'Guardar Cambios' : 'Registrar Consulta'"
+            [icon]="esEdicion() ? 'pi pi-save' : 'pi pi-check'"
+            [loading]="guardando()"
+            [disabled]="form.invalid || guardando()"
+            styleClass="btn-pink" />
         </div>
       </form>
     </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- DIÁLOGO RECETA MÉDICA                                            -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <p-dialog
+      [(visible)]="dialogReceta"
+      header="Receta Médica"
+      [modal]="true"
+      [style]="{width:'780px', maxWidth:'96vw'}"
+      [draggable]="false"
+      [resizable]="false"
+      styleClass="dialog-receta"
+    >
+
+      <div class="receta-body">
+
+        <!-- ── Sección 1: Medicamentos ── -->
+        <div class="receta-seccion">
+          <div class="receta-sec-titulo">
+            <i class="pi pi-plus-circle"></i>
+            Rx — Medicamentos
+          </div>
+
+          <!-- Tabla de medicamentos ya agregados -->
+          @if (medicamentos().length > 0) {
+            <div class="med-lista">
+              @for (med of medicamentos(); track $index; let i = $index) {
+                <div class="med-item">
+                  <div class="med-item-info">
+                    <span class="med-nombre">{{ med.nombre }}</span>
+                    <span class="med-detalle">
+                      {{ med.dosis }} · Cant: {{ med.cantidad }}
+                    </span>
+                    @if (med.indicaciones) {
+                      <span class="med-ind">{{ med.indicaciones }}</span>
+                    }
+                  </div>
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true"
+                            severity="danger" pTooltip="Eliminar"
+                            (onClick)="eliminarMedicamento(i)" />
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Formulario para agregar medicamento -->
+          <div class="med-form">
+            <div class="med-form-grid">
+              <div class="field">
+                <label>Medicamento <span class="req">*</span></label>
+                <input pInputText [(ngModel)]="nuevoMed.nombre"
+                       placeholder="Nombre del medicamento" class="w-full" />
+              </div>
+              <div class="field">
+                <label>Dosis <span class="req">*</span></label>
+                <input pInputText [(ngModel)]="nuevoMed.dosis"
+                       placeholder="Ej: 500 mg, 1 tableta" class="w-full" />
+              </div>
+              <div class="field">
+                <label>Cantidad</label>
+                <input pInputText [(ngModel)]="nuevoMed.cantidad"
+                       placeholder="Ej: 10 tabletas" class="w-full" />
+              </div>
+              <div class="field field-full">
+                <label>Indicaciones de administración</label>
+                <input pInputText [(ngModel)]="nuevoMed.indicaciones"
+                       placeholder="Ej: 1 tableta cada 8 horas por 7 días" class="w-full" />
+              </div>
+            </div>
+            <p-button label="Agregar Medicamento" icon="pi pi-plus"
+                      styleClass="btn-agregar"
+                      [disabled]="!nuevoMed.nombre || !nuevoMed.dosis"
+                      (onClick)="agregarMedicamento()" />
+          </div>
+        </div>
+
+        <div class="receta-sep"></div>
+
+        <!-- ── Sección 2: Prescripción e Indicaciones ── -->
+        <div class="receta-seccion">
+          <div class="receta-sec-titulo">
+            <i class="pi pi-list"></i>
+            Indicaciones Generales
+          </div>
+
+          <div class="field" style="margin-bottom:.8rem">
+            <label>Prescripción médica</label>
+            <textarea pInputTextarea [(ngModel)]="recetaPrescripcion"
+                      rows="3" class="w-full"
+                      placeholder="Descripción del tratamiento y forma de administración general...">
+            </textarea>
+          </div>
+
+          <div class="field">
+            <label>Próxima cita / Control</label>
+            <input pInputText [(ngModel)]="recetaProximaCita"
+                   placeholder="Ej: Regresar en 15 días para control" class="w-full" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer del diálogo -->
+      <ng-template pTemplate="footer">
+        <div class="receta-footer">
+          <p-button label="Cancelar" [text]="true" severity="secondary"
+                    (onClick)="cerrarReceta()" />
+          <div style="display:flex; gap:.75rem">
+            <p-button
+              label="Previsualizar PDF"
+              icon="pi pi-eye"
+              severity="secondary"
+              [outlined]="true"
+              [loading]="generandoReceta()"
+              [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
+              (onClick)="previsualizarReceta()"
+            />
+            <p-button
+              label="Descargar Receta"
+              icon="pi pi-file-pdf"
+              styleClass="btn-pink"
+              [loading]="generandoReceta()"
+              [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
+              (onClick)="descargarReceta()"
+            />
+          </div>
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
   styles: [`
-    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
-    .page-title  { display:flex; align-items:center; gap:1rem; }
-    .page-icon   { width:52px; height:52px; background:linear-gradient(135deg,#0fb8ad,#2d7dd2); border-radius:14px; display:flex; align-items:center; justify-content:center; }
+    .page-header  { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+    .page-title   { display:flex; align-items:center; gap:1rem; }
+    .header-actions { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    .page-icon    { width:52px; height:52px; background:linear-gradient(135deg,#e91e8c,#c2185b); border-radius:14px; display:flex; align-items:center; justify-content:center; }
     .page-icon .pi { font-size:1.4rem; color:white; }
     .page-title h2 { margin:0 0 2px; font-size:1.4rem; font-weight:700; color:#0a2342; }
     .page-title p  { margin:0; color:#64748b; font-size:.85rem; }
 
+    /* Botón Generar Receta */
+    :deep(.btn-receta) {
+      background:linear-gradient(135deg,#e91e8c,#c2185b) !important;
+      border-color:#c2185b !important; color:white !important;
+    }
+    :deep(.btn-receta:hover) {
+      background:linear-gradient(135deg,#c2185b,#ad1457) !important;
+    }
+    :deep(.btn-pink) {
+      background:linear-gradient(135deg,#e91e8c,#c2185b) !important;
+      border-color:#c2185b !important; color:white !important;
+    }
+
     .form-card { background:white; border-radius:16px; padding:0 0 1.5rem; box-shadow:0 2px 12px rgba(0,0,0,.07); overflow:hidden; }
 
     :deep(.form-tabs .p-tabview-panels) { padding:1.5rem 2rem; }
-    :deep(.form-tabs .p-tabview-nav)    { padding:0 1.5rem; background:#f8fafc; }
-    :deep(.form-tabs .p-tabview-nav li.p-highlight .p-tabview-nav-link) { color:#0fb8ad; border-color:#0fb8ad; }
+    :deep(.form-tabs .p-tabview-nav)    { padding:0 1.5rem; background:#fdf2f8; }
+    :deep(.form-tabs .p-tabview-nav li.p-highlight .p-tabview-nav-link) { color:#c2185b; border-color:#e91e8c; }
 
     .tab-i   { margin-right:6px; }
-    .tab-bdg { background:#0fb8ad; color:white; font-size:.7rem; font-weight:700; padding:1px 6px; border-radius:20px; margin-left:5px; }
+    .tab-bdg { background:#e91e8c; color:white; font-size:.7rem; font-weight:700; padding:1px 6px; border-radius:20px; margin-left:5px; }
 
     .form-grid     { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.2rem; }
     .form-grid-col { display:flex; flex-direction:column; gap:1.2rem; }
     .field-full    { grid-column:1/-1; }
-
     .field { display:flex; flex-direction:column; gap:5px; }
     .field label { font-size:.83rem; font-weight:600; color:#334155; }
-    .req  { color:#ef4444; }
+    .req  { color:#e91e8c; }
     .err  { display:flex; align-items:center; gap:4px; color:#ef4444; font-size:.78rem; }
 
     :deep(.p-divider-content) { background:white; }
     .div-lbl { display:flex; align-items:center; gap:6px; font-size:.85rem; font-weight:700; color:#334155; }
-    .div-lbl .pi { color:#0fb8ad; }
+    .div-lbl .pi { color:#e91e8c; }
 
     .imc-box  { display:flex; align-items:center; gap:8px; padding:.6rem 1rem; border-radius:10px; border:2px solid #e2e8f0; }
     .imc-normal    { border-color:#16a34a; background:#f0fdf4; }
@@ -316,32 +514,106 @@ import { HistoriaClinicaService } from '../../../core/services/historia-clinica.
     .imc-v { font-size:1.4rem; font-weight:800; color:#0a2342; }
     .imc-l { font-size:.78rem; color:#64748b; }
 
-    :deep(.upload-cust) { width:100%; margin-bottom:1rem; }
+    /* Archivos */
+    .aviso-archivos {
+      display:flex; align-items:center; gap:10px;
+      background:#fdf2f8; border:1px solid #f8bbd0; border-radius:10px;
+      padding:1rem 1.25rem; color:#c2185b; font-size:.88rem; font-weight:500;
+    }
+    .aviso-archivos .pi { font-size:1.1rem; }
+
+    .tipos-info { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .tipo-chip {
+      display:flex; align-items:center; gap:5px;
+      background:#fce4ec; color:#c2185b; border-radius:20px;
+      padding:4px 12px; font-size:.75rem; font-weight:600;
+    }
+
+    :deep(.upload-cust)  { width:100%; margin-bottom:1rem; }
     .upload-ph { display:flex; flex-direction:column; align-items:center; padding:2rem; color:#94a3b8; text-align:center; }
-    .upload-ph .pi { font-size:2.5rem; margin-bottom:.5rem; color:#cbd5e1; }
-    .upload-ph p { margin:0 0 4px; font-size:.9rem; }
+    .upload-ph .pi { font-size:2.5rem; margin-bottom:.5rem; color:#f8bbd0; }
+    .upload-ph p   { margin:0 0 4px; font-size:.9rem; }
     .upload-ph small { font-size:.78rem; }
 
-    .upload-actions { display:flex; align-items:flex-end; gap:1rem; flex-wrap:wrap; }
+    .upload-actions { display:flex; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+
+    .archivos-subidos-info {
+      display:flex; align-items:center; gap:8px;
+      background:#f0fdf4; border:1px solid #86efac; border-radius:10px;
+      padding:.75rem 1rem; color:#166534; font-size:.85rem; font-weight:600;
+    }
 
     :deep(textarea.p-inputtextarea) { border-radius:10px !important; resize:vertical; }
     :deep(.p-inputnumber) { width:100%; }
     :deep(.p-inputnumber-input) { width:100%; border-radius:10px !important; }
 
     .form-actions { display:flex; justify-content:flex-end; gap:1rem; padding:0 2rem; flex-wrap:wrap; }
+
+    /* ══ Diálogo Receta ══════════════════════════════════════════════════ */
+    :deep(.dialog-receta .p-dialog-header) {
+      background:linear-gradient(135deg,#0a2342,#1a4a7a);
+      color:white; border-radius:12px 12px 0 0;
+    }
+    :deep(.dialog-receta .p-dialog-header .p-dialog-title) { font-weight:700; }
+    :deep(.dialog-receta .p-dialog-header-icons .p-dialog-header-close) { color:white; }
+
+    .receta-body { display:flex; flex-direction:column; gap:0; }
+
+    .receta-seccion { padding:1.25rem 0; }
+
+    .receta-sec-titulo {
+      display:flex; align-items:center; gap:8px;
+      font-size:.95rem; font-weight:700; color:#0a2342;
+      margin-bottom:1rem; padding-bottom:.5rem;
+      border-bottom:2px solid #fce4ec;
+    }
+    .receta-sec-titulo .pi { color:#e91e8c; }
+
+    .receta-sep { height:1px; background:#f1f5f9; margin:.25rem 0; }
+
+    /* Lista medicamentos */
+    .med-lista { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1rem; }
+    .med-item  {
+      display:flex; align-items:center; gap:1rem;
+      background:#fdf2f8; border:1px solid #f8bbd0; border-radius:10px;
+      padding:.7rem 1rem;
+    }
+    .med-item-info { display:flex; flex-direction:column; gap:2px; flex:1; }
+    .med-nombre  { font-weight:700; color:#0a2342; font-size:.9rem; }
+    .med-detalle { font-size:.78rem; color:#c2185b; font-weight:600; }
+    .med-ind     { font-size:.75rem; color:#64748b; }
+
+    /* Formulario agregar medicamento */
+    .med-form { background:#f8fafc; border-radius:12px; padding:1rem; border:1px dashed #e2e8f0; }
+    .med-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.8rem; margin-bottom:.8rem; }
+
+    :deep(.btn-agregar) {
+      background:#fce4ec !important; color:#c2185b !important;
+      border:1px solid #f8bbd0 !important; font-weight:700 !important;
+    }
+    :deep(.btn-agregar:hover) {
+      background:#f8bbd0 !important;
+    }
+
+    .receta-footer {
+      display:flex; justify-content:space-between;
+      align-items:center; flex-wrap:wrap; gap:.75rem;
+    }
   `]
 })
 export class HistoriaFormComponent implements OnInit {
 
-  private fb      = inject(FormBuilder);
-  private route   = inject(ActivatedRoute);
-  private router  = inject(Router);
-  private hSvc    = inject(HistoriaClinicaService);
-  private toast   = inject(MessageService);
+  private fb    = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router= inject(Router);
+  private hSvc  = inject(HistoriaClinicaService);
+  private docSvc= inject(DocumentoService);
+  private toast = inject(MessageService);
 
   esEdicion             = signal(false);
   guardando             = signal(false);
   subiendo              = signal(false);
+  generandoReceta       = signal(false);
   consultaId            = signal<number | null>(null);
   historiaId            = signal<number | null>(null);
   archivosSeleccionados = signal<File[]>([]);
@@ -350,34 +622,40 @@ export class HistoriaFormComponent implements OnInit {
   imc                   = signal<number | null>(null);
   hoy                   = new Date();
 
+  // ── Estado del diálogo de receta ──────────────────────────────────────────
+  dialogReceta       = false;
+  medicamentos       = signal<Medicamento[]>([]);
+  recetaPrescripcion = '';
+  recetaProximaCita  = '';
+
+  nuevoMed: Medicamento = { nombre:'', dosis:'', cantidad:'', indicaciones:'' };
+
   opTipos = [
-    { label:'Imagen',               value:'IMAGEN' },
-    { label:'Documento',            value:'DOCUMENTO' },
-    { label:'Receta',               value:'RECETA' },
-    { label:'Resultado laboratorio',value:'RESULTADO_LABORATORIO' },
-    { label:'Ecografía',            value:'ECOGRAFIA' },
-    { label:'Otro',                 value:'OTRO' },
+    { label:'Imagen',                value:'IMAGEN' },
+    { label:'Documento',             value:'DOCUMENTO' },
+    { label:'Receta',                value:'RECETA' },
+    { label:'Resultado Laboratorio', value:'RESULTADO_LABORATORIO' },
+    { label:'Ecografía',             value:'ECOGRAFIA' },
+    { label:'Otro',                  value:'OTRO' },
   ];
 
   form: FormGroup = this.fb.group({
-    fechaConsulta:        [new Date(), Validators.required],
-    motivoConsulta:       ['',         Validators.required],
-    peso:                 [null], talla:              [null],
-    presionArterial:      [''],   frecuenciaCardiaca: [null],
-    temperatura:          [null], saturacionOxigeno:  [null],
-    semanasGestacion:     [null],
-    examenFisico:         [''],
-    diagnosticoPrincipal: ['',   Validators.required],
-    diagnosticoSecundario:[''],  codigoCie10:        [''],
-    tratamiento:          [''],  medicacion:         [''],
-    indicaciones:         [''],  proximaCita:        [null],
-    observaciones:        [''],
+    fechaConsulta:         [new Date(), Validators.required],
+    motivoConsulta:        ['',         Validators.required],
+    peso:                  [null], talla:              [null],
+    presionArterial:       [''],   frecuenciaCardiaca: [null],
+    temperatura:           [null], saturacionOxigeno:  [null],
+    semanasGestacion:      [null],
+    examenFisico:          [''],
+    diagnosticoPrincipal:  ['', Validators.required],
+    diagnosticoSecundario: [''], codigoCie10:   [''],
+    tratamiento:           [''], medicacion:    [''],
+    indicaciones:          [''], proximaCita:   [null],
+    observaciones:         [''],
   });
 
   ngOnInit(): void {
-    // Edición: /historias/consultas/:id/editar
     const cId = this.route.snapshot.paramMap.get('consultaId');
-    // Creación: /historias/consultas/nueva?historiaId=X
     const hId = this.route.snapshot.queryParamMap.get('historiaId');
 
     if (cId) {
@@ -390,7 +668,6 @@ export class HistoriaFormComponent implements OnInit {
       this.router.navigate(['/historias']);
     }
 
-    // IMC reactivo
     ['peso','talla'].forEach(f =>
       this.form.get(f)?.valueChanges.subscribe(() => this.calcImc())
     );
@@ -404,12 +681,18 @@ export class HistoriaFormComponent implements OnInit {
         this.archivosSubidos.set(r.data.totalArchivos);
         this.form.patchValue({
           ...r.data,
-          fechaConsulta: r.data.fechaConsulta ? new Date(r.data.fechaConsulta+'T00:00:00') : null,
-          proximaCita:   r.data.proximaCita   ? new Date(r.data.proximaCita+'T00:00:00')   : null,
+          fechaConsulta: r.data.fechaConsulta
+            ? new Date(r.data.fechaConsulta + 'T00:00:00') : null,
+          proximaCita: r.data.proximaCita
+            ? new Date(r.data.proximaCita + 'T00:00:00') : null,
         });
         this.calcImc();
       },
-      error: () => { this.toast.add({ severity:'error', summary:'Error', detail:'No se pudo cargar la consulta' }); this.volver(); }
+      error: () => {
+        this.toast.add({ severity:'error', summary:'Error',
+          detail:'No se pudo cargar la consulta' });
+        this.volver();
+      }
     });
   }
 
@@ -417,38 +700,50 @@ export class HistoriaFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.guardando.set(true);
 
-    const raw = this.form.getRawValue();
-    const toISO = (d: any) => d instanceof Date ? d.toISOString().split('T')[0] : d;
-
-    const payload = { ...raw, fechaConsulta: toISO(raw.fechaConsulta), proximaCita: toISO(raw.proximaCita) };
+    const raw    = this.form.getRawValue();
+    const toISO  = (d: any) => d instanceof Date ? d.toISOString().split('T')[0] : d;
+    const payload = {
+      ...raw,
+      fechaConsulta: toISO(raw.fechaConsulta),
+      proximaCita:   toISO(raw.proximaCita)
+    };
 
     if (this.esEdicion()) {
       this.hSvc.actualizarConsulta(this.consultaId()!, payload).subscribe({
         next: r => {
-          this.toast.add({ severity:'success', summary:'Guardado', detail:'Consulta actualizada' });
-          setTimeout(() => this.router.navigate(['/historias/consultas', r.data.id]), 900);
+          this.toast.add({ severity:'success', summary:'Guardado',
+            detail:'Consulta actualizada' });
+          setTimeout(() =>
+            this.router.navigate(['/historias/consultas', r.data.id]), 900);
           this.guardando.set(false);
         },
         error: err => {
-          this.toast.add({ severity:'error', summary:'Error', detail: err.error?.mensaje ?? 'Error al actualizar' });
+          this.toast.add({ severity:'error', summary:'Error',
+            detail: err.error?.mensaje ?? 'Error al actualizar' });
           this.guardando.set(false);
         }
       });
     } else {
-      this.hSvc.crearConsulta({ ...payload, historiaClinicaId: this.historiaId()! }).subscribe({
+      this.hSvc.crearConsulta({
+        ...payload, historiaClinicaId: this.historiaId()!
+      }).subscribe({
         next: r => {
-          this.toast.add({ severity:'success', summary:'Registrada', detail:'Consulta registrada exitosamente' });
-          setTimeout(() => this.router.navigate(['/historias/consultas', r.data.id]), 900);
+          this.toast.add({ severity:'success', summary:'Registrada',
+            detail:'Consulta registrada. Ahora puedes adjuntar archivos.' });
+          setTimeout(() =>
+            this.router.navigate(['/historias/consultas', r.data.id, 'editar']), 900);
           this.guardando.set(false);
         },
         error: err => {
-          this.toast.add({ severity:'error', summary:'Error', detail: err.error?.mensaje ?? 'Error al registrar' });
+          this.toast.add({ severity:'error', summary:'Error',
+            detail: err.error?.mensaje ?? 'Error al registrar' });
           this.guardando.set(false);
         }
       });
     }
   }
 
+  // ── Archivos ──────────────────────────────────────────────────────────────
   onFileSelect(e: any): void { this.archivosSeleccionados.set(e.currentFiles ?? []); }
 
   subirArchivos(): void {
@@ -465,14 +760,90 @@ export class HistoriaFormComponent implements OnInit {
             this.subiendo.set(false);
             this.archivosSeleccionados.set([]);
             this.archivosSubidos.update(n => n + done);
-            this.toast.add({ severity:'success', summary:'Archivos subidos', detail:`${done} archivo(s) subido(s)` });
+            this.toast.add({ severity:'success', summary:'Archivos subidos',
+              detail:`${done} archivo(s) adjuntado(s) correctamente` });
           }
         },
-        error: () => { this.subiendo.set(false); this.toast.add({ severity:'error', summary:'Error', detail:'No se pudo subir: ' + f.name }); }
+        error: () => {
+          this.subiendo.set(false);
+          this.toast.add({ severity:'error', summary:'Error',
+            detail:'No se pudo subir: ' + f.name });
+        }
       });
     });
   }
 
+  // ── Receta Médica ─────────────────────────────────────────────────────────
+  abrirReceta(): void {
+    // Pre-cargar indicaciones del formulario si existen
+    this.recetaPrescripcion = this.form.get('indicaciones')?.value ?? '';
+    const proximaCita = this.form.get('proximaCita')?.value;
+    if (proximaCita instanceof Date) {
+      this.recetaProximaCita = proximaCita.toLocaleDateString('es-EC');
+    }
+    this.dialogReceta = true;
+  }
+
+  cerrarReceta(): void {
+    this.dialogReceta = false;
+  }
+
+  agregarMedicamento(): void {
+    if (!this.nuevoMed.nombre || !this.nuevoMed.dosis) return;
+    this.medicamentos.update(list => [...list, { ...this.nuevoMed }]);
+    this.nuevoMed = { nombre:'', dosis:'', cantidad:'', indicaciones:'' };
+  }
+
+  eliminarMedicamento(idx: number): void {
+    this.medicamentos.update(list => list.filter((_,i) => i !== idx));
+  }
+
+  previsualizarReceta(): void {
+    const id = this.consultaId();
+    if (!id) return;
+    this.generandoReceta.set(true);
+    // Guarda la receta como datos en el payload y genera PDF
+    const payload = this.buildRecetaPayload();
+    this.docSvc.generarReceta(id, payload).subscribe({
+      next: blob => {
+        this.docSvc.previsualizarPdf(blob);
+        this.generandoReceta.set(false);
+      },
+      error: () => {
+        this.toast.add({ severity:'error', summary:'Error',
+          detail:'No se pudo generar la receta' });
+        this.generandoReceta.set(false);
+      }
+    });
+  }
+
+  descargarReceta(): void {
+    const id = this.consultaId();
+    if (!id) return;
+    this.generandoReceta.set(true);
+    const payload = this.buildRecetaPayload();
+    this.docSvc.generarReceta(id, payload).subscribe({
+      next: blob => {
+        this.docSvc.abrirPdf(blob, `receta_consulta_${id}.pdf`);
+        this.generandoReceta.set(false);
+      },
+      error: () => {
+        this.toast.add({ severity:'error', summary:'Error',
+          detail:'No se pudo descargar la receta' });
+        this.generandoReceta.set(false);
+      }
+    });
+  }
+
+  private buildRecetaPayload() {
+    return {
+      medicamentos: this.medicamentos(),
+      prescripcion: this.recetaPrescripcion,
+      proximaCita:  this.recetaProximaCita,
+    };
+  }
+
+  // ── IMC ───────────────────────────────────────────────────────────────────
   calcImc(): void {
     const p = this.form.get('peso')?.value;
     const t = this.form.get('talla')?.value;
