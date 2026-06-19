@@ -8,7 +8,7 @@ import { ToastModule }     from 'primeng/toast';
 import { SkeletonModule }  from 'primeng/skeleton';
 import { TooltipModule }   from 'primeng/tooltip';
 import { DialogModule }    from 'primeng/dialog';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { forkJoin }               from 'rxjs';
@@ -24,7 +24,7 @@ import { CitaResumen, EstadoCita } from '../../core/models/cita.models';
   imports: [
     CommonModule, RouterLink, FormsModule,
     ButtonModule, TagModule, ToastModule, SkeletonModule,
-    TooltipModule, DialogModule, InputTextareaModule,
+    TooltipModule, DialogModule, TextareaModule,
     ConfirmDialogModule
   ],
   providers: [MessageService, ConfirmationService],

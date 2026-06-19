@@ -60,7 +60,7 @@ import { Paciente } from '../../../core/models';
           </a>
           @if (paciente()!.estado === 'ACTIVO') {
             <p-button label="Desactivar" icon="pi pi-ban"
-                      severity="warning" [outlined]="true"
+                      severity="warn" [outlined]="true"
                       (onClick)="confirmarDesactivar()" />
           } @else {
             <p-button label="Activar" icon="pi pi-check"

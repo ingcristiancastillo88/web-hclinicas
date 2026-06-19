@@ -4,7 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule,
   FormsModule, FormArray } from '@angular/forms';
 import { InputTextModule }     from 'primeng/inputtext';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule }   from 'primeng/inputnumber';
 import { CalendarModule }      from 'primeng/calendar';
 import { ButtonModule }        from 'primeng/button';
@@ -19,6 +19,7 @@ import { TooltipModule }       from 'primeng/tooltip';
 import { MessageService }      from 'primeng/api';
 import { HistoriaClinicaService } from '../../../core/services/historia-clinica.service';
 import { DocumentoService }       from '../../../core/services/documento.service';
+import { DialogoLaboratorioComponent } from '../dialogo-laboratorio/dialogo-laboratorio.component';
 
 interface Medicamento {
   nombre: string;
@@ -32,10 +33,11 @@ interface Medicamento {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule,
-    InputTextModule, InputTextareaModule, InputNumberModule,
+    InputTextModule, TextareaModule, InputNumberModule,
     CalendarModule, ButtonModule, TabViewModule,
     FileUploadModule, DropdownModule, ToastModule,
-    DividerModule, DialogModule, TableModule, TooltipModule
+    DividerModule, DialogModule, TableModule, TooltipModule,
+    DialogoLaboratorioComponent
   ],
   providers: [MessageService],
   template: `
@@ -54,17 +56,20 @@ interface Medicamento {
         </div>
       </div>
       <div class="header-actions">
-        <!-- Botón Generar Receta (solo en edición) -->
-        @if (esEdicion()) {
-          <p-button label="Generar Receta" icon="pi pi-file-edit"
-                    styleClass="btn-receta"
-                    pTooltip="Generar receta médica para esta consulta"
-                    tooltipPosition="bottom"
-                    (onClick)="abrirReceta()" />
-        }
-        <p-button label="Cancelar" icon="pi pi-times"
-                  [text]="true" severity="secondary" (onClick)="volver()" />
-      </div>
+  <!-- Botón Generar Receta (solo en edición) -->
+  @if (esEdicion()) {
+    <p-button label="Generar Receta" icon="pi pi-file-edit"
+              styleClass="btn-receta"
+              pTooltip="Generar receta médica para esta consulta"
+              tooltipPosition="bottom"
+              (onClick)="abrirReceta()" />
+
+    <!-- Botón Pedido de Exámenes -->
+    <app-dialogo-laboratorio [consultaId]="consultaId()!" />
+  }
+  <p-button label="Cancelar" icon="pi pi-times"
+            [text]="true" severity="secondary" (onClick)="volver()" />
+</div>
     </div>
 
     <!-- ── Formulario ── -->
@@ -437,30 +442,39 @@ interface Medicamento {
 
       <!-- Footer del diálogo -->
       <ng-template pTemplate="footer">
-        <div class="receta-footer">
-          <p-button label="Cancelar" [text]="true" severity="secondary"
-                    (onClick)="cerrarReceta()" />
-          <div style="display:flex; gap:.75rem">
-            <p-button
-              label="Previsualizar PDF"
-              icon="pi pi-eye"
-              severity="secondary"
-              [outlined]="true"
-              [loading]="generandoReceta()"
-              [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
-              (onClick)="previsualizarReceta()"
-            />
-            <p-button
-              label="Descargar Receta"
-              icon="pi pi-file-pdf"
-              styleClass="btn-pink"
-              [loading]="generandoReceta()"
-              [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
-              (onClick)="descargarReceta()"
-            />
-          </div>
-        </div>
-      </ng-template>
+  <div class="receta-footer">
+    <p-button label="Cancelar" [text]="true" severity="secondary"
+              (onClick)="cerrarReceta()" />
+    <div style="display:flex; gap:.75rem; flex-wrap:wrap">
+      <p-button
+        label="Guardar"
+        icon="pi pi-save"
+        severity="secondary"
+        [outlined]="true"
+        [loading]="guardandoReceta()"
+        [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
+        (onClick)="guardarReceta()"
+      />
+      <p-button
+        label="Previsualizar PDF"
+        icon="pi pi-eye"
+        severity="secondary"
+        [outlined]="true"
+        [loading]="generandoReceta()"
+        [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
+        (onClick)="previsualizarReceta()"
+      />
+      <p-button
+        label="Descargar Receta"
+        icon="pi pi-file-pdf"
+        styleClass="btn-pink"
+        [loading]="generandoReceta()"
+        [disabled]="medicamentos().length === 0 && !recetaPrescripcion"
+        (onClick)="descargarReceta()"
+      />
+    </div>
+  </div>
+</ng-template>
     </p-dialog>
   `,
   styles: [`
@@ -624,6 +638,7 @@ export class HistoriaFormComponent implements OnInit {
 
   // ── Estado del diálogo de receta ──────────────────────────────────────────
   dialogReceta       = false;
+  guardandoReceta    = signal(false);
   medicamentos       = signal<Medicamento[]>([]);
   recetaPrescripcion = '';
   recetaProximaCita  = '';
@@ -775,13 +790,50 @@ export class HistoriaFormComponent implements OnInit {
 
   // ── Receta Médica ─────────────────────────────────────────────────────────
   abrirReceta(): void {
-    // Pre-cargar indicaciones del formulario si existen
+    // Carga la receta ya guardada si existe para esta consulta
+    const id = this.consultaId();
+    if (id) {
+      this.docSvc.obtenerReceta(id).subscribe({
+        next: r => {
+          if (r.data) {
+            this.medicamentos.set(r.data.medicamentos ?? []);
+            this.recetaPrescripcion = r.data.prescripcion ?? '';
+            this.recetaProximaCita  = r.data.proximaCita ?? '';
+          } else {
+            this.precargarDesdeFormulario();
+          }
+        },
+        error: () => this.precargarDesdeFormulario()
+      });
+    }
+    this.dialogReceta = true;
+  }
+
+  private precargarDesdeFormulario(): void {
     this.recetaPrescripcion = this.form.get('indicaciones')?.value ?? '';
     const proximaCita = this.form.get('proximaCita')?.value;
     if (proximaCita instanceof Date) {
       this.recetaProximaCita = proximaCita.toLocaleDateString('es-EC');
     }
-    this.dialogReceta = true;
+  }
+
+  guardarReceta(): void {
+    const id = this.consultaId();
+    if (!id) return;
+    this.guardandoReceta.set(true);
+    const payload = this.buildRecetaPayload();
+    this.docSvc.guardarReceta(id, payload).subscribe({
+      next: () => {
+        this.guardandoReceta.set(false);
+        this.toast.add({ severity:'success', summary:'Guardada',
+          detail:'Receta guardada en la historia clínica' });
+      },
+      error: () => {
+        this.guardandoReceta.set(false);
+        this.toast.add({ severity:'error', summary:'Error',
+          detail:'No se pudo guardar la receta' });
+      }
+    });
   }
 
   cerrarReceta(): void {
@@ -802,10 +854,9 @@ export class HistoriaFormComponent implements OnInit {
     const id = this.consultaId();
     if (!id) return;
     this.generandoReceta.set(true);
-    // Guarda la receta como datos en el payload y genera PDF
     const payload = this.buildRecetaPayload();
-    this.docSvc.generarReceta(id, payload).subscribe({
-      next: blob => {
+    this.docSvc.generarPdfReceta(id, payload).subscribe({
+      next: (blob: Blob) => {
         this.docSvc.previsualizarPdf(blob);
         this.generandoReceta.set(false);
       },
@@ -822,9 +873,9 @@ export class HistoriaFormComponent implements OnInit {
     if (!id) return;
     this.generandoReceta.set(true);
     const payload = this.buildRecetaPayload();
-    this.docSvc.generarReceta(id, payload).subscribe({
-      next: blob => {
-        this.docSvc.abrirPdf(blob, `receta_consulta_${id}.pdf`);
+    this.docSvc.generarPdfReceta(id, payload).subscribe({
+      next: (blob: Blob) => {
+        this.docSvc.descargarPdf(blob, `receta_consulta_${id}.pdf`);
         this.generandoReceta.set(false);
       },
       error: () => {

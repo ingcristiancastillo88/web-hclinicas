@@ -7,8 +7,10 @@ import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
 import { LOCALE_ID }         from '@angular/core';
-
+import { providePrimeNG }      from 'primeng/config';
+import Aura                    from '@primeng/themes/aura';
 registerLocaleData(localeEs, 'es-EC');
+
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,6 +18,14 @@ export const appConfig: ApplicationConfig = {
     provideRouter(appRoutes, withViewTransitions()),
     provideHttpClient(withInterceptors([jwtInterceptor])),
     provideAnimationsAsync(),
+    providePrimeNG({
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: false  // desactiva modo oscuro automático
+        }
+      }
+    }),
     { provide: LOCALE_ID, useValue: 'es-EC' }
   ]
 };

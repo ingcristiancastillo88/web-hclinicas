@@ -158,7 +158,7 @@ import { Usuario } from '../../../core/models';
                     icon="pi pi-ban"
                     [rounded]="true"
                     [text]="true"
-                    severity="warning"
+                    severity="warn"
                     pTooltip="Desactivar"
                     tooltipPosition="top"
                     (onClick)="confirmarDesactivar(usuario)"

@@ -201,7 +201,7 @@ import { PacienteResumen } from '../../../core/models';
                 </a>
                 @if (pac.estado === 'ACTIVO') {
                   <p-button icon="pi pi-ban" [rounded]="true" [text]="true"
-                            severity="warning" pTooltip="Desactivar" tooltipPosition="top"
+                            severity="warn" pTooltip="Desactivar" tooltipPosition="top"
                             (onClick)="confirmarDesactivar(pac)" />
                 } @else {
                   <p-button icon="pi pi-check" [rounded]="true" [text]="true"

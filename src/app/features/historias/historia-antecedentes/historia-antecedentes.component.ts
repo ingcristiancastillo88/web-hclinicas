@@ -3,7 +3,7 @@ import { CommonModule }    from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { InputTextModule }     from 'primeng/inputtext';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule }   from 'primeng/inputnumber';
 import { ButtonModule }        from 'primeng/button';
 import { ToastModule }         from 'primeng/toast';
@@ -19,7 +19,7 @@ import { Paciente } from '../../../core/models';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule,
-    InputTextModule, InputTextareaModule, InputNumberModule,
+    InputTextModule, TextareaModule, InputNumberModule,
     ButtonModule, ToastModule, DividerModule
   ],
   providers: [MessageService],

@@ -12,7 +12,7 @@ import { ToastModule }     from 'primeng/toast';
 import { TooltipModule }   from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule }    from 'primeng/dialog';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { CitaMedicaService } from '../../../core/services/cita-medica.service';
@@ -26,7 +26,7 @@ import { CitaResumen, EstadoCita } from '../../../core/models/cita.models';
     TableModule, ButtonModule, InputTextModule,
     DropdownModule, CalendarModule, TagModule,
     ToastModule, TooltipModule, ConfirmDialogModule,
-    DialogModule, InputTextareaModule
+    DialogModule, TextareaModule
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -215,7 +215,7 @@ import { CitaResumen, EstadoCita } from '../../../core/models/cita.models';
                             pTooltip="Marcar atendida" tooltipPosition="top"
                             (onClick)="confirmarAtendida(cita)" />
                   <p-button icon="pi pi-times" [rounded]="true" [text]="true"
-                            severity="warning"
+                            severity="warn"
                             pTooltip="No asistió" tooltipPosition="top"
                             (onClick)="confirmarNoAsistio(cita)" />
                   <p-button icon="pi pi-ban" [rounded]="true" [text]="true"

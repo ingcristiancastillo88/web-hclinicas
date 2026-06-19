@@ -3,14 +3,13 @@ import {
 } from '@angular/core';
 import { CommonModule }    from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RouterLink }      from '@angular/router';
 import { ButtonModule }    from 'primeng/button';
 import { DialogModule }    from 'primeng/dialog';
 import { ToastModule }     from 'primeng/toast';
 import { TooltipModule }   from 'primeng/tooltip';
 import { TagModule }       from 'primeng/tag';
 import { InputTextModule } from 'primeng/inputtext';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { DropdownModule }  from 'primeng/dropdown';
 import { CalendarModule }  from 'primeng/calendar';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -37,7 +36,7 @@ interface DiaCalendario {
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, DialogModule, ToastModule, TooltipModule,
-    TagModule, InputTextModule, InputTextareaModule,
+    TagModule, InputTextModule, TextareaModule,
     DropdownModule, CalendarModule, InputNumberModule,
     ConfirmDialogModule
   ],
@@ -201,7 +200,7 @@ interface DiaCalendario {
                                 severity="success" pTooltip="Atendida" tooltipPosition="top"
                                 (onClick)="$event.stopPropagation(); marcarAtendida(cita)" />
                       <p-button icon="pi pi-times" [rounded]="true" [text]="true"
-                                severity="warning" pTooltip="No asistió" tooltipPosition="top"
+                                severity="warn" pTooltip="No asistió" tooltipPosition="top"
                                 (onClick)="$event.stopPropagation(); marcarNoAsistio(cita)" />
                       <p-button icon="pi pi-ban" [rounded]="true" [text]="true"
                                 severity="danger" pTooltip="Cancelar" tooltipPosition="top"

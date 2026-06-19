@@ -4,7 +4,7 @@ import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule,
          AbstractControl, ValidationErrors } from '@angular/forms';
 import { InputTextModule }     from 'primeng/inputtext';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { DropdownModule }      from 'primeng/dropdown';
 import { CalendarModule }      from 'primeng/calendar';
 import { ButtonModule }        from 'primeng/button';
@@ -44,7 +44,7 @@ function validarCedulaEcuatoriana(control: AbstractControl): ValidationErrors | 
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, RouterLink,
-    InputTextModule, InputTextareaModule, DropdownModule,
+    InputTextModule, TextareaModule, DropdownModule,
     CalendarModule, ButtonModule, TabViewModule,
     ToastModule, DividerModule
   ],

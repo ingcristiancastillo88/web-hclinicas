@@ -7,10 +7,11 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { DividerModule } from 'primeng/divider';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
+import { TagModule } from 'primeng/tag';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { HistoriaClinicaService } from '../../../core/services/historia-clinica.service';
 import { ArchivoAdjunto, ConsultaDetalle } from '../../../core/models/historia.models';
-import { DocumentoService } from '../../../core/services/documento.service';
+import { DocumentoService, RecetaPayload, PedidoPayload } from '../../../core/services/documento.service';
 
 
 @Component({
@@ -19,7 +20,7 @@ import { DocumentoService } from '../../../core/services/documento.service';
   imports: [
     CommonModule,
     ButtonModule, ToastModule, SkeletonModule,
-    DividerModule, ConfirmDialogModule, TooltipModule
+    DividerModule, ConfirmDialogModule, TooltipModule, TagModule
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -70,6 +71,87 @@ import { DocumentoService } from '../../../core/services/documento.service';
       </div>
     } @else if (consulta()) {
       <div class="detail-card">
+
+        <!-- ══ Documentos generados: Receta y Pedido de Exámenes ══════════ -->
+        @if (!cargandoDocs() && (tieneReceta() || tienePedidoLab() || tienePedidoImag())) {
+          <div class="docs-grid">
+
+            @if (tieneReceta()) {
+              <div class="doc-card doc-receta">
+                <div class="doc-icon"><i class="pi pi-file-edit"></i></div>
+                <div class="doc-info">
+                  <span class="doc-titulo">Receta Médica</span>
+                  <span class="doc-sub">
+                    {{ recetaGuardada()!.medicamentos.length }} medicamento(s)
+                  </span>
+                </div>
+                <div class="doc-actions">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true"
+                            severity="secondary" pTooltip="Ver receta" tooltipPosition="top"
+                            [loading]="generandoDoc() === 'receta-ver'"
+                            (onClick)="verReceta()" />
+                  <p-button icon="pi pi-download" [rounded]="true" [text]="true"
+                            severity="info" pTooltip="Descargar" tooltipPosition="top"
+                            [loading]="generandoDoc() === 'receta-descargar'"
+                            (onClick)="descargarReceta()" />
+                </div>
+              </div>
+            }
+
+            @if (tienePedidoLab()) {
+              <div class="doc-card doc-lab">
+                <div class="doc-icon"><i class="pi pi-clipboard"></i></div>
+                <div class="doc-info">
+                  <span class="doc-titulo">Pedido de Laboratorio</span>
+                  <span class="doc-sub">
+                    {{ totalExamenes(pedidoLabGuardado()) }} examen(es) seleccionado(s)
+                  </span>
+                </div>
+                <div class="doc-actions">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true"
+                            severity="secondary" pTooltip="Ver pedido" tooltipPosition="top"
+                            [loading]="generandoDoc() === 'lab-ver'"
+                            (onClick)="verPedido('LABORATORIO')" />
+                  <p-button icon="pi pi-download" [rounded]="true" [text]="true"
+                            severity="info" pTooltip="Descargar" tooltipPosition="top"
+                            [loading]="generandoDoc() === 'lab-descargar'"
+                            (onClick)="descargarPedido('LABORATORIO')" />
+                </div>
+              </div>
+            }
+
+            @if (tienePedidoImag()) {
+              <div class="doc-card doc-imag">
+                <div class="doc-icon"><i class="pi pi-image"></i></div>
+                <div class="doc-info">
+                  <span class="doc-titulo">Pedido de Imagenología</span>
+                  <span class="doc-sub">
+                    {{ pedidoImagGuardado()!.tipoEstudio || 'Estudio solicitado' }}
+                  </span>
+                </div>
+                <div class="doc-actions">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true"
+                            severity="secondary" pTooltip="Ver pedido" tooltipPosition="top"
+                            [loading]="generandoDoc() === 'imag-ver'"
+                            (onClick)="verPedido('IMAGENOLOGIA')" />
+                  <p-button icon="pi pi-download" [rounded]="true" [text]="true"
+                            severity="info" pTooltip="Descargar" tooltipPosition="top"
+                            [loading]="generandoDoc() === 'imag-descargar'"
+                            (onClick)="descargarPedido('IMAGENOLOGIA')" />
+                </div>
+              </div>
+            }
+
+          </div>
+          <p-divider />
+        } @else if (cargandoDocs()) {
+          <div class="docs-grid">
+            @for (i of [1,2]; track i) {
+              <p-skeleton height="4.5rem" borderRadius="12px" />
+            }
+          </div>
+          <p-divider />
+        }
 
         <!-- Signos vitales -->
         @if (tieneSignos()) {
@@ -257,6 +339,39 @@ import { DocumentoService } from '../../../core/services/documento.service';
 
     .detail-card { background:white; border-radius:16px; padding:2rem; box-shadow:0 2px 12px rgba(0,0,0,.07); }
 
+    /* ── Documentos generados (receta / pedidos) ─────────────────────── */
+    .docs-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem; margin-bottom: 1rem;
+    }
+    .doc-card {
+      display: flex; align-items: center; gap: 1rem;
+      border-radius: 14px; padding: 1rem 1.25rem;
+      border: 1.5px solid transparent;
+    }
+    .doc-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .doc-icon .pi { font-size: 1.3rem; }
+    .doc-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .doc-titulo { font-size: .92rem; font-weight: 700; color: #0a2342; }
+    .doc-sub    { font-size: .78rem; color: #64748b; }
+    .doc-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+    .doc-receta { background: #fdf2f8; border-color: #f8bbd0; }
+    .doc-receta .doc-icon { background: #fce4ec; }
+    .doc-receta .doc-icon .pi { color: #c2185b; }
+
+    .doc-lab { background: #f5f3ff; border-color: #ddd6fe; }
+    .doc-lab .doc-icon { background: #ede9fe; }
+    .doc-lab .doc-icon .pi { color: #7c3aed; }
+
+    .doc-imag { background: #eff6ff; border-color: #bfdbfe; }
+    .doc-imag .doc-icon { background: #dbeafe; }
+    .doc-imag .doc-icon .pi { color: #2563eb; }
+
     /* Signos vitales */
     .signos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:1rem; margin-bottom:1.5rem; }
     .signo { display:flex; flex-direction:column; align-items:center; gap:4px; background:#f8fafc; border-radius:12px; padding:1rem .5rem; border:1px solid #e2e8f0; }
@@ -308,6 +423,13 @@ export class HistoriaDetalleComponent implements OnInit {
   cargando = signal(false);
   descargandoPdf = signal(false);
 
+  // ── Documentos generados (receta / pedidos) ───────────────────────────────
+  cargandoDocs       = signal(false);
+  generandoDoc       = signal<string | null>(null);
+  recetaGuardada     = signal<RecetaPayload | null>(null);
+  pedidoLabGuardado  = signal<PedidoPayload | null>(null);
+  pedidoImagGuardado = signal<PedidoPayload | null>(null);
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('consultaId');
     if (id) this.cargar(Number(id));
@@ -317,10 +439,130 @@ export class HistoriaDetalleComponent implements OnInit {
   cargar(id: number): void {
     this.cargando.set(true);
     this.hSvc.obtenerConsulta(id).subscribe({
-      next: r => { this.consulta.set(r.data); this.cargando.set(false); },
+      next: r => {
+        this.consulta.set(r.data);
+        this.cargando.set(false);
+        this.cargarDocumentosGuardados(id);
+      },
       error: () => {
         this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar la consulta' });
         this.router.navigate(['/historias']);
+      }
+    });
+  }
+
+  /** Consulta si existe receta y/o pedidos guardados para mostrar las cards */
+  cargarDocumentosGuardados(consultaId: number): void {
+    this.cargandoDocs.set(true);
+    let pendientes = 3;
+    const terminar = () => { pendientes--; if (pendientes === 0) this.cargandoDocs.set(false); };
+
+    this.docService.obtenerReceta(consultaId).subscribe({
+      next: r => { this.recetaGuardada.set(r.data ?? null); terminar(); },
+      error: () => terminar()
+    });
+
+    this.docService.obtenerPedido(consultaId, 'LABORATORIO').subscribe({
+      next: r => { this.pedidoLabGuardado.set(r.data ?? null); terminar(); },
+      error: () => terminar()
+    });
+
+    this.docService.obtenerPedido(consultaId, 'IMAGENOLOGIA').subscribe({
+      next: r => { this.pedidoImagGuardado.set(r.data ?? null); terminar(); },
+      error: () => terminar()
+    });
+  }
+
+  tieneReceta(): boolean {
+    const r = this.recetaGuardada();
+    return !!r && ((r.medicamentos?.length ?? 0) > 0 || !!r.prescripcion);
+  }
+
+  tienePedidoLab(): boolean {
+    const p = this.pedidoLabGuardado();
+    return !!p && this.totalExamenes(p) > 0;
+  }
+
+  tienePedidoImag(): boolean {
+    const p = this.pedidoImagGuardado();
+    return !!p && (!!p.descripcion || !!p.tipoEstudio || !!p.motivoSolicitud);
+  }
+
+  totalExamenes(p: PedidoPayload | null): number {
+    if (!p?.examenesSeleccionados) return 0;
+    return Object.values(p.examenesSeleccionados)
+      .reduce((acc, arr) => acc + (arr?.length ?? 0), 0);
+  }
+
+  // ── Ver / Descargar Receta ─────────────────────────────────────────────────
+  verReceta(): void {
+    const id = this.consulta()?.id;
+    const receta = this.recetaGuardada();
+    if (!id || !receta) return;
+    this.generandoDoc.set('receta-ver');
+    this.docService.generarPdfReceta(id, receta).subscribe({
+      next: (blob: Blob) => {
+        this.docService.previsualizarPdf(blob);
+        this.generandoDoc.set(null);
+      },
+      error: () => {
+        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar la receta' });
+        this.generandoDoc.set(null);
+      }
+    });
+  }
+
+  descargarReceta(): void {
+    const id = this.consulta()?.id;
+    const receta = this.recetaGuardada();
+    if (!id || !receta) return;
+    this.generandoDoc.set('receta-descargar');
+    this.docService.generarPdfReceta(id, receta).subscribe({
+      next: (blob: Blob) => {
+        this.docService.descargarPdf(blob, `receta_consulta_${id}.pdf`);
+        this.generandoDoc.set(null);
+      },
+      error: () => {
+        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo descargar la receta' });
+        this.generandoDoc.set(null);
+      }
+    });
+  }
+
+  // ── Ver / Descargar Pedido (Laboratorio o Imagenología) ─────────────────────
+  verPedido(tipo: 'LABORATORIO' | 'IMAGENOLOGIA'): void {
+    const id = this.consulta()?.id;
+    const pedido = tipo === 'LABORATORIO' ? this.pedidoLabGuardado() : this.pedidoImagGuardado();
+    if (!id || !pedido) return;
+    const key = tipo === 'LABORATORIO' ? 'lab-ver' : 'imag-ver';
+    this.generandoDoc.set(key);
+    this.docService.generarPdfPedido(id, pedido).subscribe({
+      next: (blob: Blob) => {
+        this.docService.previsualizarPdf(blob);
+        this.generandoDoc.set(null);
+      },
+      error: () => {
+        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar el pedido' });
+        this.generandoDoc.set(null);
+      }
+    });
+  }
+
+  descargarPedido(tipo: 'LABORATORIO' | 'IMAGENOLOGIA'): void {
+    const id = this.consulta()?.id;
+    const pedido = tipo === 'LABORATORIO' ? this.pedidoLabGuardado() : this.pedidoImagGuardado();
+    if (!id || !pedido) return;
+    const key = tipo === 'LABORATORIO' ? 'lab-descargar' : 'imag-descargar';
+    const nombre = tipo === 'LABORATORIO' ? 'laboratorio' : 'imagenologia';
+    this.generandoDoc.set(key);
+    this.docService.generarPdfPedido(id, pedido).subscribe({
+      next: (blob: Blob) => {
+        this.docService.descargarPdf(blob, `pedido_${nombre}_consulta_${id}.pdf`);
+        this.generandoDoc.set(null);
+      },
+      error: () => {
+        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo descargar el pedido' });
+        this.generandoDoc.set(null);
       }
     });
   }
@@ -424,7 +666,7 @@ export class HistoriaDetalleComponent implements OnInit {
     this.descargandoPdf.set(true);
     this.docService.descargarConsulta(c.id).subscribe({
       next: blob => {
-        this.docService.abrirPdf(blob, `consulta_${c.id}.pdf`);
+        this.docService.descargarPdf(blob, `consulta_${c.id}.pdf`);
         this.descargandoPdf.set(false);
       },
       error: () => {

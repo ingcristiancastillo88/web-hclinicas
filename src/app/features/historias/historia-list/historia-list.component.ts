@@ -419,7 +419,7 @@ export class HistoriaListComponent implements OnInit {
     this.descargandoPdf.set(true);
     this.docService.descargarHistoria(h.id).subscribe({
       next: blob => {
-        this.docService.abrirPdf(
+        this.docService.descargarPdf(
           blob,
           `historia_clinica_${h.pacienteNombreCompleto.replace(' ', '_')}.pdf`
         );

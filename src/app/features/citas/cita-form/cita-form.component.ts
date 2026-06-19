@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { InputTextModule }     from 'primeng/inputtext';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule }   from 'primeng/inputnumber';
 import { CalendarModule }      from 'primeng/calendar';
 import { DropdownModule }      from 'primeng/dropdown';
@@ -22,7 +22,7 @@ import { PacienteResumen } from '../../../core/models';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, RouterLink,
-    InputTextModule, InputTextareaModule, InputNumberModule,
+    InputTextModule, TextareaModule, InputNumberModule,
     CalendarModule, DropdownModule, ButtonModule,
     ToastModule, DividerModule
   ],
