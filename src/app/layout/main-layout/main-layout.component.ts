@@ -1,14 +1,14 @@
-import { Component, inject, signal, HostListener, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
-import { ButtonModule }  from 'primeng/button';
-import { TooltipModule } from 'primeng/tooltip';
-import { RippleModule }  from 'primeng/ripple';
-import { AvatarModule }  from 'primeng/avatar';
-import { MenuModule }    from 'primeng/menu';
-import { MenuItem as PrimeMenuItem } from 'primeng/api';
-import { AuthService } from '../../core/services/auth.service';
-import { MenuItem } from '../../core/models';
+import {Component, inject, signal, HostListener, computed} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {RouterOutlet, RouterLink, RouterLinkActive, Router} from '@angular/router';
+import {ButtonModule} from 'primeng/button';
+import {TooltipModule} from 'primeng/tooltip';
+import {RippleModule} from 'primeng/ripple';
+import {AvatarModule} from 'primeng/avatar';
+import {MenuModule} from 'primeng/menu';
+import {MenuItem as PrimeMenuItem} from 'primeng/api';
+import {AuthService} from '../../core/services/auth.service';
+import {MenuItem} from '../../core/models';
 
 type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
 
@@ -436,7 +436,7 @@ export class MainLayoutComponent {
   private router = inject(Router);
 
   sidebarMode = signal<SidebarMode>('expanded');
-  mobileOpen  = signal(false);
+  mobileOpen = signal(false);
 
   readonly fechaHoy = new Date().toLocaleDateString('es-EC', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -444,83 +444,83 @@ export class MainLayoutComponent {
 
   // ── Menú lateral ─────────────────────────────────────────────────────────
   menuItems = signal<MenuItem[]>([
-  {
-    label: 'Dashboard',
-    icon: 'pi-home',
-    route: '/dashboard',
-    roles: []
-  },
-  {
-    label: 'Usuarios',
-    icon: 'pi-users',
-    route: '/usuarios',
-    roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR']
-  },
-  {
-    label: 'Roles',
-    icon: 'pi-shield',
-    route: '/roles',
-    roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR']
-  },
-  {
-    label: 'Auditoría',
-    icon: 'pi-history',
-    route: '/auditoria',
-    roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR']
-  },
-  {
-    label: 'Pacientes',
-    icon: 'pi-id-card',
-    route: '/pacientes',
-    roles: [
-      'ROLE_SUPERADMINISTRADOR',
-      'ROLE_ADMINISTRADOR',
-      'ROLE_MEDICO_ESPECIALISTA'
-    ]
-  },
-  {
-    label: 'Historias Clínicas',
-    icon: 'pi-file-edit',
-    route: '/historias',
-    roles: [
-      'ROLE_SUPERADMINISTRADOR',
-      'ROLE_ADMINISTRADOR',
-      'ROLE_MEDICO_ESPECIALISTA',
-      'ROLE_PACIENTE'
-    ]
-  },
-  {
-    label: 'Citas Médicas',
-    icon: 'pi-calendar',
-    route: '/citas',
-    roles: [
-      'ROLE_SUPERADMINISTRADOR',
-      'ROLE_ADMINISTRADOR',
-      'ROLE_MEDICO_ESPECIALISTA'
-    ]
-  }
-]);
+    {
+      label: 'Dashboard',
+      icon: 'pi-home',
+      route: '/dashboard',
+      roles: []
+    },
+    {
+      label: 'Usuarios',
+      icon: 'pi-users',
+      route: '/usuarios',
+      roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR']
+    },
+    {
+      label: 'Roles',
+      icon: 'pi-shield',
+      route: '/roles',
+      roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR']
+    },
+    {
+      label: 'Auditoría',
+      icon: 'pi-history',
+      route: '/auditoria',
+      roles: ['ROLE_SUPERADMINISTRADOR', 'ROLE_ADMINISTRADOR']
+    },
+    {
+      label: 'Historias Clínicas',
+      icon: 'pi-file-edit',
+      route: '/historias',
+      roles: [
+        'ROLE_SUPERADMINISTRADOR',
+        'ROLE_ADMINISTRADOR',
+        'ROLE_MEDICO_ESPECIALISTA',
+        'ROLE_PACIENTE'
+      ]
+    },
+    {
+      label: 'Citas Médicas',
+      icon: 'pi-calendar',
+      route: '/citas',
+      roles: [
+        'ROLE_SUPERADMINISTRADOR',
+        'ROLE_ADMINISTRADOR',
+        'ROLE_MEDICO_ESPECIALISTA'
+      ]
+    },
+    {
+      label: 'Pacientes',
+      icon: 'pi-id-card',
+      route: '/pacientes',
+      roles: [
+        'ROLE_SUPERADMINISTRADOR',
+        'ROLE_ADMINISTRADOR',
+        'ROLE_MEDICO_ESPECIALISTA'
+      ]
+    }
+  ]);
 
   // ── Título dinámico ───────────────────────────────────────────────────────
   pageTitle = computed(() => {
-  const url = this.router.url;
-  if (url.includes('dashboard'))  return 'Dashboard';
-  if (url.includes('usuarios'))   return 'Gestión de Usuarios';
-  if (url.includes('roles'))      return 'Gestión de Roles';
-  if (url.includes('auditoria'))  return 'Auditoría del Sistema';
-  if (url.includes('historias'))  return 'Historias Clínicas';
-  if (url.includes('pacientes'))  return 'Gestión de Pacientes';
-  if (url.includes('citas')) return 'Citas Médicas';
-  return 'Sistema HClínicas';
-});
+    const url = this.router.url;
+    if (url.includes('dashboard')) return 'Dashboard';
+    if (url.includes('usuarios')) return 'Gestión de Usuarios';
+    if (url.includes('roles')) return 'Gestión de Roles';
+    if (url.includes('auditoria')) return 'Auditoría del Sistema';
+    if (url.includes('historias')) return 'Historias Clínicas';
+    if (url.includes('pacientes')) return 'Gestión de Pacientes';
+    if (url.includes('citas')) return 'Citas Médicas';
+    return 'Sistema HClínicas';
+  });
 
   rolLabel = computed(() => {
     const rol = this.authService.rolActual() ?? '';
     const labels: Record<string, string> = {
       'ROLE_SUPERADMINISTRADOR': 'Superadministrador',
-      'ROLE_ADMINISTRADOR':      'Administrador',
-      'ROLE_MEDICO_ESPECIALISTA':'Médico Especialista',
-      'ROLE_PACIENTE':           'Paciente'
+      'ROLE_ADMINISTRADOR': 'Administrador',
+      'ROLE_MEDICO_ESPECIALISTA': 'Médico Especialista',
+      'ROLE_PACIENTE': 'Paciente'
     };
     return labels[rol] ?? rol;
   });
