@@ -192,7 +192,7 @@ interface Medicamento {
 
             <div class="form-grid-col">
               <div class="field req-field">
-                <label>② Motivo de Consulta <span class="req">*</span></label>
+                <label>Motivo de Consulta <span class="req">*</span></label>
                 <textarea pInputTextarea formControlName="motivoConsulta"
                           rows="2" class="w-full"
                           placeholder="Motivo principal por el que consulta la paciente..."></textarea>
@@ -202,7 +202,7 @@ interface Medicamento {
               </div>
 
               <div class="field req-field">
-                <label>③ Enfermedad Actual</label>
+                <label>Enfermedad Actual</label>
                 <textarea pInputTextarea formControlName="enfermedadActual"
                           rows="4" class="w-full"
                           placeholder="Descripción detallada de la enfermedad o síntomas actuales, tiempo de evolución, características..."></textarea>

@@ -1,4 +1,4 @@
-import {Component, inject, signal, HostListener, computed} from '@angular/core';
+import {Component, inject, signal, HostListener, computed, OnInit, OnDestroy} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {RouterOutlet, RouterLink, RouterLinkActive, Router} from '@angular/router';
 import {ButtonModule} from 'primeng/button';
@@ -6,9 +6,10 @@ import {TooltipModule} from 'primeng/tooltip';
 import {RippleModule} from 'primeng/ripple';
 import {AvatarModule} from 'primeng/avatar';
 import {MenuModule} from 'primeng/menu';
-import {MenuItem as PrimeMenuItem} from 'primeng/api';
 import {AuthService} from '../../core/services/auth.service';
 import {MenuItem} from '../../core/models';
+import {SessionWarningComponent} from '../../shared/components/session-warning/session-warning.component';
+import {SessionTimeoutService} from '../../core/services/session-timeout.service';
 
 type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
 
@@ -17,7 +18,8 @@ type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
   standalone: true,
   imports: [
     CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
-    ButtonModule, TooltipModule, RippleModule, AvatarModule, MenuModule
+    ButtonModule, TooltipModule, RippleModule, AvatarModule, MenuModule,
+    SessionWarningComponent
   ],
   template: `
     <!-- Overlay para modo móvil -->
@@ -92,14 +94,12 @@ type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
 
         <!-- Topbar -->
         <header class="topbar">
-          <!-- Botón toggle sidebar -->
           <button class="toggle-btn" (click)="toggleSidebar()"
                   pRipple pTooltip="Expandir/Colapsar menú" tooltipPosition="bottom">
             <i class="pi" [class.pi-bars]="sidebarMode() !== 'expanded'"
                           [class.pi-arrow-left]="sidebarMode() === 'expanded'"></i>
           </button>
 
-          <!-- Breadcrumb -->
           <div class="topbar-title">
             <i class="pi pi-angle-right breadcrumb-sep"></i>
             <span>{{ pageTitle() }}</span>
@@ -117,6 +117,9 @@ type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
 
       </div>
     </div>
+
+    <!-- ── Aviso de sesión por expirar (1 min antes del cierre) ─── -->
+    <app-session-warning />
   `,
   styles: [`
     :host {
@@ -138,309 +141,214 @@ type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
       height: 100vh;
     }
 
-    /* ── Overlay móvil ───────────────────────────────────────────── */
     .sidebar-overlay {
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       background: rgba(0,0,0,0.5);
       z-index: 99;
       backdrop-filter: blur(2px);
     }
 
-    /* ── Wrapper ─────────────────────────────────────────────────── */
-    .layout-wrapper {
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
+    .layout-wrapper { display:flex; height:100vh; overflow:hidden; }
 
-    /* ── SIDEBAR ─────────────────────────────────────────────────── */
     .sidebar {
       width: var(--sidebar-w-expanded);
       background: var(--sidebar-bg);
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       flex-shrink: 0;
       transition: width var(--transition), transform var(--transition);
       overflow: hidden;
-      position: relative;
-      z-index: 100;
+      position: relative; z-index: 100;
     }
 
-    /* Modo collapsed: solo iconos */
     .mode-collapsed .sidebar { width: var(--sidebar-w-collapsed); }
 
-    /* Modo hidden: oculto (móvil) */
     .mode-hidden .sidebar {
-      position: fixed;
-      top: 0; left: 0; bottom: 0;
+      position: fixed; top:0; left:0; bottom:0;
       width: var(--sidebar-w-expanded);
       transform: translateX(-100%);
     }
 
-    .mode-hidden.mobile-open .sidebar {
-      transform: translateX(0);
-    }
+    .mode-hidden.mobile-open .sidebar { transform: translateX(0); }
 
-    /* ── Logo ────────────────────────────────────────────────────── */
     .sidebar-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 1.4rem 1.2rem;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      flex-shrink: 0;
+      display:flex; align-items:center; gap:12px;
+      padding:1.4rem 1.2rem;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      flex-shrink:0;
     }
 
     .logo-icon {
-      min-width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--azul-claro), var(--teal));
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      min-width:40px; height:40px;
+      background:linear-gradient(135deg,var(--azul-claro),var(--teal));
+      border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
     }
 
-    .logo-icon .pi { color: white; font-size: 1.1rem; }
+    .logo-icon .pi { color:white; font-size:1.1rem; }
 
     .logo-text {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #ffffff;
-      white-space: nowrap;
-      overflow: hidden;
-      opacity: 1;
-      transition: opacity var(--transition), max-width var(--transition);
+      font-size:1.25rem; font-weight:700; color:#ffffff;
+      white-space:nowrap; overflow:hidden;
+      opacity:1;
+      transition:opacity var(--transition), max-width var(--transition);
     }
 
-    .mode-collapsed .logo-text { opacity: 0; max-width: 0; }
+    .mode-collapsed .logo-text { opacity:0; max-width:0; }
 
-    /* ── Nav ─────────────────────────────────────────────────────── */
     .sidebar-nav {
-      flex: 1;
-      padding: 1rem 0.6rem;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      overflow-y: auto;
-      overflow-x: hidden;
+      flex:1; padding:1rem 0.6rem;
+      display:flex; flex-direction:column; gap:2px;
+      overflow-y:auto; overflow-x:hidden;
     }
 
     .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      color: var(--sidebar-text);
-      text-decoration: none;
-      transition: background 0.18s, color 0.18s;
-      white-space: nowrap;
-      cursor: pointer;
-      min-height: 48px;
+      display:flex; align-items:center; gap:12px;
+      padding:0.75rem 1rem; border-radius:10px;
+      color:var(--sidebar-text); text-decoration:none;
+      transition:background 0.18s, color 0.18s;
+      white-space:nowrap; cursor:pointer; min-height:48px;
     }
 
-    .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+    .nav-item:hover { background:var(--sidebar-hover); color:#fff; }
 
     .nav-item.active {
-      background: var(--sidebar-active);
-      color: #ffffff;
-      border-left: 3px solid var(--azul-claro);
+      background:var(--sidebar-active); color:#ffffff;
+      border-left:3px solid var(--azul-claro);
     }
 
-    .nav-item .pi {
-      font-size: 1.1rem;
-      min-width: 20px;
-      text-align: center;
-    }
+    .nav-item .pi { font-size:1.1rem; min-width:20px; text-align:center; }
 
     .nav-label {
-      font-size: 0.88rem;
-      font-weight: 500;
-      overflow: hidden;
-      white-space: nowrap;
-      transition: opacity var(--transition), max-width var(--transition);
+      font-size:0.88rem; font-weight:500;
+      overflow:hidden; white-space:nowrap;
+      transition:opacity var(--transition), max-width var(--transition);
     }
 
-    .mode-collapsed .nav-label { opacity: 0; max-width: 0; }
+    .mode-collapsed .nav-label { opacity:0; max-width:0; }
 
     .nav-badge {
-      margin-left: auto;
-      background: var(--teal);
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 20px;
-      transition: opacity var(--transition);
+      margin-left:auto;
+      background:var(--teal); color:white;
+      font-size:0.7rem; font-weight:700;
+      padding:2px 7px; border-radius:20px;
+      transition:opacity var(--transition);
     }
 
-    .mode-collapsed .nav-badge { opacity: 0; }
+    .mode-collapsed .nav-badge { opacity:0; }
 
-    /* ── Sidebar bottom ──────────────────────────────────────────── */
     .sidebar-bottom {
-      padding: 0.6rem;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      flex-shrink: 0;
+      padding:0.6rem;
+      border-top:1px solid rgba(255,255,255,0.08);
+      flex-shrink:0;
     }
 
     .user-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0.75rem;
-      border-radius: 10px;
-      margin-bottom: 4px;
-      overflow: hidden;
+      display:flex; align-items:center; gap:10px;
+      padding:0.75rem; border-radius:10px;
+      margin-bottom:4px; overflow:hidden;
     }
 
     :deep(.user-avatar) {
-      min-width: 36px;
-      width: 36px !important;
-      height: 36px !important;
-      background: linear-gradient(135deg, var(--azul-claro), var(--teal)) !important;
-      font-size: 0.85rem !important;
-      font-weight: 700 !important;
+      min-width:36px; width:36px !important; height:36px !important;
+      background:linear-gradient(135deg,var(--azul-claro),var(--teal)) !important;
+      font-size:0.85rem !important; font-weight:700 !important;
     }
 
     .user-info {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transition: opacity var(--transition), max-width var(--transition);
+      display:flex; flex-direction:column; overflow:hidden;
+      transition:opacity var(--transition), max-width var(--transition);
     }
 
-    .mode-collapsed .user-info { opacity: 0; max-width: 0; }
+    .mode-collapsed .user-info { opacity:0; max-width:0; }
 
     .user-name {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #ffffff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size:0.82rem; font-weight:600; color:#ffffff;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
 
-    .user-rol {
-      font-size: 0.72rem;
-      color: var(--teal);
-      white-space: nowrap;
-    }
+    .user-rol { font-size:0.72rem; color:var(--teal); white-space:nowrap; }
 
     .logout-btn {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0.7rem 1rem;
-      border-radius: 10px;
-      color: rgba(255,255,255,0.6);
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-      white-space: nowrap;
-      transition: background 0.18s, color 0.18s;
+      display:flex; align-items:center; gap:12px;
+      padding:0.7rem 1rem; border-radius:10px;
+      color:rgba(255,255,255,0.6);
+      background:none; border:none; cursor:pointer;
+      width:100%; white-space:nowrap;
+      transition:background 0.18s, color 0.18s;
     }
 
-    .logout-btn:hover {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-    }
+    .logout-btn:hover { background:rgba(239,68,68,0.15); color:#f87171; }
+    .logout-btn .pi { font-size:1rem; min-width:20px; text-align:center; }
 
-    .logout-btn .pi { font-size: 1rem; min-width: 20px; text-align: center; }
-
-    /* ── Layout content ──────────────────────────────────────────── */
     .layout-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transition: margin-left var(--transition);
+      flex:1; display:flex; flex-direction:column;
+      overflow:hidden;
+      transition:margin-left var(--transition);
     }
 
-    /* ── Topbar ──────────────────────────────────────────────────── */
     .topbar {
-      height: var(--topbar-h);
-      background: var(--topbar-bg);
-      border-bottom: 1px solid #e2e8f0;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0 1.5rem;
-      flex-shrink: 0;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      height:var(--topbar-h); background:var(--topbar-bg);
+      border-bottom:1px solid #e2e8f0;
+      display:flex; align-items:center; gap:1rem;
+      padding:0 1.5rem; flex-shrink:0;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
     }
 
     .toggle-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: var(--content-bg);
-      border: 1px solid #e2e8f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--azul-oscuro);
-      font-size: 1rem;
-      transition: background 0.18s;
-      flex-shrink: 0;
+      width:40px; height:40px; border-radius:10px;
+      background:var(--content-bg); border:1px solid #e2e8f0;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; color:var(--azul-oscuro); font-size:1rem;
+      transition:background 0.18s; flex-shrink:0;
     }
 
-    .toggle-btn:hover { background: #e2e8f0; }
+    .toggle-btn:hover { background:#e2e8f0; }
 
     .topbar-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--azul-oscuro);
+      display:flex; align-items:center; gap:6px;
+      font-size:1rem; font-weight:600; color:var(--azul-oscuro);
     }
 
-    .breadcrumb-sep { font-size: 0.85rem; color: #94a3b8; }
+    .breadcrumb-sep { font-size:0.85rem; color:#94a3b8; }
 
-    .topbar-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
+    .topbar-right { margin-left:auto; display:flex; align-items:center; gap:1rem; }
+    .topbar-date  { font-size:0.82rem; color:#64748b; }
 
-    .topbar-date {
-      font-size: 0.82rem;
-      color: #64748b;
-    }
-
-    /* ── Content area ────────────────────────────────────────────── */
     .content-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem;
-      background: var(--content-bg);
+      flex:1; overflow-y:auto; padding:1.5rem;
+      background:var(--content-bg);
     }
 
-    /* ── Modo hidden (móvil) ─────────────────────────────────────── */
-    .mode-hidden .layout-content { width: 100%; }
+    .mode-hidden .layout-content { width:100%; }
 
     @media (max-width: 768px) {
-      .topbar-date { display: none; }
-      .content-area { padding: 1rem; }
+      .topbar-date { display:none; }
+      .content-area { padding:1rem; }
     }
   `]
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit, OnDestroy {
 
-  authService = inject(AuthService);
-  private router = inject(Router);
+  authService  = inject(AuthService);
+  private router      = inject(Router);
+  private sessionSvc  = inject(SessionTimeoutService);
 
   sidebarMode = signal<SidebarMode>('expanded');
-  mobileOpen = signal(false);
+  mobileOpen  = signal(false);
 
   readonly fechaHoy = new Date().toLocaleDateString('es-EC', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
+
+  // ── Ciclo de vida ─────────────────────────────────────────────────────────
+  ngOnInit(): void {
+    this.checkScreenSize();
+    this.sessionSvc.iniciar();   // ← inicia el monitoreo de inactividad
+  }
+
+  ngOnDestroy(): void {
+    this.sessionSvc.detener();   // ← detiene al salir del layout
+  }
 
   // ── Menú lateral ─────────────────────────────────────────────────────────
   menuItems = signal<MenuItem[]>([
@@ -504,13 +412,13 @@ export class MainLayoutComponent {
   // ── Título dinámico ───────────────────────────────────────────────────────
   pageTitle = computed(() => {
     const url = this.router.url;
-    if (url.includes('dashboard')) return 'Dashboard';
-    if (url.includes('usuarios')) return 'Gestión de Usuarios';
-    if (url.includes('roles')) return 'Gestión de Roles';
-    if (url.includes('auditoria')) return 'Auditoría del Sistema';
-    if (url.includes('historias')) return 'Historias Clínicas';
-    if (url.includes('pacientes')) return 'Gestión de Pacientes';
-    if (url.includes('citas')) return 'Citas Médicas';
+    if (url.includes('dashboard'))  return 'Dashboard';
+    if (url.includes('usuarios'))   return 'Gestión de Usuarios';
+    if (url.includes('roles'))      return 'Gestión de Roles';
+    if (url.includes('auditoria'))  return 'Auditoría del Sistema';
+    if (url.includes('historias'))  return 'Historias Clínicas';
+    if (url.includes('pacientes'))  return 'Gestión de Pacientes';
+    if (url.includes('citas'))      return 'Citas Médicas';
     return 'Sistema HClínicas';
   });
 
@@ -518,18 +426,14 @@ export class MainLayoutComponent {
     const rol = this.authService.rolActual() ?? '';
     const labels: Record<string, string> = {
       'ROLE_SUPERADMINISTRADOR': 'Superadministrador',
-      'ROLE_ADMINISTRADOR': 'Administrador',
-      'ROLE_MEDICO_ESPECIALISTA': 'Médico Especialista',
-      'ROLE_PACIENTE': 'Paciente'
+      'ROLE_ADMINISTRADOR':      'Administrador',
+      'ROLE_MEDICO_ESPECIALISTA':'Médico Especialista',
+      'ROLE_PACIENTE':           'Paciente'
     };
     return labels[rol] ?? rol;
   });
 
   // ── Detección de tamaño de pantalla ──────────────────────────────────────
-  constructor() {
-    this.checkScreenSize();
-  }
-
   @HostListener('window:resize')
   checkScreenSize(): void {
     const w = window.innerWidth;
@@ -553,14 +457,10 @@ export class MainLayoutComponent {
     }
   }
 
-  closeMobile(): void {
-    this.mobileOpen.set(false);
-  }
+  closeMobile(): void { this.mobileOpen.set(false); }
 
   onNavClick(): void {
-    if (this.sidebarMode() === 'hidden') {
-      this.mobileOpen.set(false);
-    }
+    if (this.sidebarMode() === 'hidden') this.mobileOpen.set(false);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -576,6 +476,7 @@ export class MainLayoutComponent {
   }
 
   logout(): void {
+    this.sessionSvc.detener();
     this.authService.logout();
   }
 }

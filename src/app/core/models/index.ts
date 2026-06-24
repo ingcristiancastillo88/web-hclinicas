@@ -31,6 +31,7 @@ export interface LoginResponse {
   nombreCompleto: string;
   correo: string;
   rol: string;
+  passwordTemporal: boolean;
 }
 
 export interface UsuarioSesion {
