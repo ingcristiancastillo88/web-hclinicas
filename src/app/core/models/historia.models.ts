@@ -103,6 +103,10 @@ export interface ConsultaDetalle {
   fechaActualizacion?: string;
   creadoPor?: string;
   actualizadoPor?: string;
+  pacienteEdad?: number;
+  codigoCie10Descripcion?: string;
+  codigosCie10Secundarios?: string[];
+  fechaUltimaMenustracion?: string;
 }
 
 export interface CrearConsultaRequest {
@@ -125,6 +129,8 @@ export interface CrearConsultaRequest {
   indicaciones?: string;
   proximaCita?: string;
   observaciones?: string;
+  fechaUltimaMenustracion?: string;
+  codigosCie10Secundarios?: string[];
 }
 
 export type ActualizarConsultaRequest =

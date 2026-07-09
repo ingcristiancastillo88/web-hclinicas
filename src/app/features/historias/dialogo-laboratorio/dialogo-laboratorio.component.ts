@@ -7,12 +7,12 @@ import { ButtonModule }        from 'primeng/button';
 import { DialogModule }        from 'primeng/dialog';
 import { TabViewModule }       from 'primeng/tabview';
 import { InputTextModule }     from 'primeng/inputtext';
-import { Textarea } from 'primeng/inputtextarea';
 import { CheckboxModule }      from 'primeng/checkbox';
 import { ToastModule }         from 'primeng/toast';
 import { DividerModule }       from 'primeng/divider';
 import { TooltipModule }       from 'primeng/tooltip';
 import { MessageService }      from 'primeng/api';
+import {InputTextarea} from 'primeng/inputtextarea';
 import {DocumentoService, PedidoPayload} from '../../../core/services/documento.service';
 
 // ── Estructura de un grupo de exámenes ───────────────────────────────────
@@ -28,7 +28,7 @@ interface GrupoExamen {
   imports: [
     CommonModule, FormsModule,
     ButtonModule, DialogModule, TabViewModule,
-    InputTextModule, Textarea,
+    InputTextModule, InputTextarea,
     CheckboxModule, ToastModule, DividerModule, TooltipModule
   ],
   providers: [MessageService],
@@ -187,13 +187,20 @@ interface GrupoExamen {
             <span><i class="pi pi-image tab-i"></i>Imagenología</span>
           </ng-template>
 
-          <!-- Tipo de estudio -->
-          <div class="seccion-titulo">Tipo de Estudio</div>
+          <!-- Tipo de estudio — multi-selección -->
+          <div class="seccion-titulo">
+            Tipo de Estudio
+            <span class="sec-sub">Puede seleccionar uno o varios</span>
+          </div>
           <div class="tipo-estudios">
             @for (tipo of tiposEstudio; track tipo) {
-              <label class="tipo-card" [class.seleccionado]="tipoEstudio === tipo"
-                     (click)="tipoEstudio = tipo">
-                <i [class]="'pi ' + getTipoIcon(tipo)"></i>
+              <label class="tipo-card" [class.seleccionado]="tieneEstudio(tipo)"
+                     (click)="toggleEstudio(tipo)">
+                @if (tieneEstudio(tipo)) {
+                  <i class="pi pi-check-circle check-activo"></i>
+                } @else {
+                  <i [class]="'pi ' + getTipoIcon(tipo)"></i>
+                }
                 <span>{{ tipo }}</span>
               </label>
             }
@@ -390,6 +397,14 @@ interface GrupoExamen {
     .tipo-card:hover {
       border-color: #7c3aed; color: #7c3aed; background: #f5f3ff;
     }
+    .sec-sub {
+      font-size: .72rem; font-weight: 400;
+      color: #94a3b8; margin-left: 8px;
+    }
+    .check-activo {
+      color: #16a34a !important;
+      font-size: 1.1rem;
+    }
     .tipo-card.seleccionado {
       border-color: #7c3aed; color: #7c3aed;
       background: #f5f3ff;
@@ -451,7 +466,7 @@ export class DialogoLaboratorioComponent implements OnInit, OnChanges {
   otrosLab      = '';
 
   // Campos imagenología
-  tipoEstudio        = '';
+  tiposEstudioSel: string[] = [];   // multi-selección de tipos de estudio
   descripcionImag    = '';
   motivoImag         = '';
   monitoreoFetal     = false;
@@ -568,7 +583,15 @@ export class DialogoLaboratorioComponent implements OnInit, OnChanges {
           this.diagnosticoLab = r.data.diagnostico ?? '';
           this.cieLab         = r.data.codigoCie10 ?? '';
         } else {
-          this.tipoEstudio       = r.data.tipoEstudio ?? '';
+          // Cargar tipos de estudio (puede venir como string o array)
+          const te = r.data.tipoEstudio;
+          if (Array.isArray(te)) {
+            this.tiposEstudioSel = te;
+          } else if (te) {
+            this.tiposEstudioSel = [te];
+          } else {
+            this.tiposEstudioSel = [];
+          }
           this.descripcionImag   = r.data.descripcion ?? '';
           this.motivoImag        = r.data.motivoSolicitud ?? '';
           this.monitoreoFetal    = r.data.monitoreoFetal ?? false;
@@ -588,6 +611,18 @@ export class DialogoLaboratorioComponent implements OnInit, OnChanges {
   // ── Checkboxes ────────────────────────────────────────────────────────────
   isChecked(clave: string, item: string): boolean {
     return (this.seleccionados[clave] ?? []).includes(item);
+  }
+
+  tieneEstudio(tipo: string): boolean {
+    return this.tiposEstudioSel.includes(tipo);
+  }
+
+  toggleEstudio(tipo: string): void {
+    if (this.tiposEstudioSel.includes(tipo)) {
+      this.tiposEstudioSel = this.tiposEstudioSel.filter(t => t !== tipo);
+    } else {
+      this.tiposEstudioSel = [...this.tiposEstudioSel, tipo];
+    }
   }
 
   toggleExamen(clave: string, item: string, checked: boolean): void {
@@ -665,7 +700,10 @@ export class DialogoLaboratorioComponent implements OnInit, OnChanges {
     return {
       tipo: esLab ? 'LABORATORIO' : 'IMAGENOLOGIA',
       examenesSeleccionados: this.seleccionados,
-      tipoEstudio:     esLab ? undefined : this.tipoEstudio,
+      tipoEstudio: esLab ? undefined
+        : (this.tiposEstudioSel.length === 1
+          ? this.tiposEstudioSel[0]
+          : this.tiposEstudioSel.join(', ')),
       descripcion:     esLab ? undefined : this.descripcionImag,
       motivoSolicitud: esLab ? undefined : this.motivoImag,
       monitoreoFetal:  esLab ? undefined : this.monitoreoFetal,

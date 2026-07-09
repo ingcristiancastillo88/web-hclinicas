@@ -170,6 +170,7 @@ export interface Paciente {
   fechaActualizacion?: string;
   creadoPor?: string;
   actualizadoPor?: string;
+  fechaUltimaMenustracion?: string;
 }
 
 export interface CrearPacienteRequest {
