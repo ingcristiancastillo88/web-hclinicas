@@ -4,10 +4,10 @@ import { Observable }         from 'rxjs';
 import {environment} from '../../../environments/environment';
 
 export interface MedicamentoDto {
-  nombre:      string;
-  dosis:       string;
-  cantidad:    string;
-  indicaciones:string;
+  nombreGenerico:  string;
+  nombreComercial: string;
+  presentacion:    string;
+  indicaciones:    string;
 }
 
 export interface RecetaPayload {

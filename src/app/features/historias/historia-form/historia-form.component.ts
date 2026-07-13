@@ -23,7 +23,10 @@ import { MedicamentoCatalogoService, MedicamentoSugerencia } from '../../../core
 import { Cie10Service, Cie10Sugerencia } from '../../../core/services/cie10.service';
 
 interface Medicamento {
-  nombre: string; dosis: string; cantidad: string; indicaciones: string;
+  nombreGenerico:  string;  // Ej: "Ibuprofeno 400 mg"
+  nombreComercial: string;  // Ej: "BUPREX FLASH"
+  presentacion:    string;  // Ej: "Tabletas #10 (diez)"
+  indicaciones:    string;  // Ej: "1 tab cada 8h por 3 días"
 }
 
 @Component({
@@ -85,7 +88,7 @@ interface Medicamento {
                ══════════════════════════════════════════════════════════════ -->
           <p-tabPanel>
             <ng-template pTemplate="header">
-              <span><i class="pi pi-calendar tab-i"></i>Consulta</span>
+              <span><i class="pi pi-calendar tab-i"></i>① Consulta</span>
             </ng-template>
 
             <!-- Parámetros de la visita -->
@@ -94,19 +97,11 @@ interface Medicamento {
               <div class="form-grid-3">
                 <div class="field req-field">
                   <label class="label-upper">Fecha y Hora de Consulta <span class="req">*</span></label>
-<!--                  <p-calendar formControlName="fechaConsulta"-->
-<!--                              [maxDate]="hoy" [showIcon]="true"-->
-<!--                              [showTime]="true" dateFormat="dd/mm/yy"-->
-<!--                              styleClass="w-full" inputStyleClass="w-full" />-->
-                  <p-calendar
-                    formControlName="fechaConsulta"
-                    [maxDate]="hoy"
-                    [showIcon]="true"
-                    [showTime]="true"
-                    dateFormat="dd/mm/yy"
-                    styleClass="w-full"
-                    inputStyleClass="w-full">
-                </p-calendar>
+                  <p-calendar formControlName="fechaConsulta"
+                              [maxDate]="hoy" [showIcon]="true"
+                              [showTime]="true" dateFormat="dd/mm/yy"
+                              appendTo="body"
+                              styleClass="w-full" inputStyleClass="w-full" />
                   @if (isInvalid('fechaConsulta')) {
                     <small class="err">Obligatorio</small>
                   }
@@ -176,7 +171,7 @@ interface Medicamento {
                ══════════════════════════════════════════════════════════════ -->
           <p-tabPanel>
             <ng-template pTemplate="header">
-              <span><i class="pi pi-heart tab-i"></i>Examen Físico</span>
+              <span><i class="pi pi-heart tab-i"></i>② Examen Físico</span>
             </ng-template>
 
             <!-- Antropometría y Signos Vitales -->
@@ -437,31 +432,13 @@ interface Medicamento {
                ══════════════════════════════════════════════════════════════ -->
           <p-tabPanel>
             <ng-template pTemplate="header">
-              <span><i class="pi pi-check-circle tab-i"></i>Diagnóstico</span>
+              <span><i class="pi pi-check-circle tab-i"></i>③ Diagnóstico</span>
             </ng-template>
 
             <div class="seccion-bloque">
               <div class="seccion-titulo"><i class="pi pi-check-circle"></i>Diagnóstico (CIE-10)</div>
               <div class="form-grid-col">
-                <div class="field req-field">
-                  <label class="label-upper">Diagnóstico Principal <span class="req">*</span></label>
-                  <textarea pInputTextarea formControlName="diagnosticoPrincipal"
-                            rows="2" class="w-full"
-                            placeholder="Diagnóstico principal de la consulta...">
-                  </textarea>
-                  @if (isInvalid('diagnosticoPrincipal')) {
-                    <small class="err">Obligatorio</small>
-                  }
-                </div>
-                <div class="field">
-                  <label class="label-upper">Diagnóstico Secundario</label>
-                  <textarea pInputTextarea formControlName="diagnosticoSecundario"
-                            rows="2" class="w-full"
-                            placeholder="Diagnóstico secundario (si aplica)...">
-                  </textarea>
-                </div>
-
-                <!-- CIE-10 Principal -->
+                <!-- CIE-10 Principal — VA PRIMERO -->
                 <div class="field">
                   <label class="label-upper">CIE-10 Principal
                     <span class="lbl-hint">Selecciona uno</span>
@@ -533,6 +510,29 @@ interface Medicamento {
                       }
                     </div>
                   }
+                </div>
+
+                <!-- Diagnóstico libre — después del CIE-10 -->
+                <div class="field req-field">
+                  <label class="label-upper">
+                    Diagnóstico Principal (Texto Libre)
+                    <span class="lbl-hint">Se precarga al seleccionar CIE-10 principal</span>
+                    <span class="req">*</span>
+                  </label>
+                  <textarea pInputTextarea formControlName="diagnosticoPrincipal"
+                            rows="2" class="w-full"
+                            placeholder="Diagnóstico principal de la consulta...">
+                  </textarea>
+                  @if (isInvalid('diagnosticoPrincipal')) {
+                    <small class="err">Obligatorio</small>
+                  }
+                </div>
+                <div class="field">
+                  <label class="label-upper">Diagnóstico Secundario (Texto Libre)</label>
+                  <textarea pInputTextarea formControlName="diagnosticoSecundario"
+                            rows="2" class="w-full"
+                            placeholder="Diagnóstico secundario (si aplica)...">
+                  </textarea>
                 </div>
               </div>
             </div>
@@ -656,6 +656,14 @@ interface Medicamento {
               [modal]="true" [style]="{width:'780px', maxWidth:'96vw'}"
               [draggable]="false" [resizable]="false" styleClass="dialog-receta">
       <div class="receta-body">
+        <!-- Diagnóstico precargado del formulario -->
+        @if (recetaDiagnostico) {
+          <div class="receta-diag-banner">
+            <i class="pi pi-check-circle"></i>
+            <span class="receta-diag-lbl">Diagnóstico:</span>
+            <span>{{ recetaDiagnostico }}</span>
+          </div>
+        }
         <div class="receta-seccion">
           <div class="receta-sec-titulo"><i class="pi pi-plus-circle"></i> Rx — Medicamentos</div>
           @if (medicamentos().length > 0) {
@@ -663,9 +671,16 @@ interface Medicamento {
               @for (med of medicamentos(); track $index; let i = $index) {
                 <div class="med-item">
                   <div class="med-item-info">
-                    <span class="med-nombre">{{ med.nombre }}</span>
-                    <span class="med-detalle">{{ med.dosis }} · Cant: {{ med.cantidad }}</span>
-                    @if (med.indicaciones) { <span class="med-ind">{{ med.indicaciones }}</span> }
+                    <span class="med-nombre">{{ med.nombreGenerico }}</span>
+                    @if (med.nombreComercial) {
+                      <span class="med-comercial">{{ med.nombreComercial }}</span>
+                    }
+                    @if (med.presentacion) {
+                      <span class="med-detalle">{{ med.presentacion }}</span>
+                    }
+                    @if (med.indicaciones) {
+                      <span class="med-ind">{{ med.indicaciones }}</span>
+                    }
                   </div>
                   <p-button icon="pi pi-trash" [rounded]="true" [text]="true"
                             severity="danger" (onClick)="eliminarMedicamento(i)" />
@@ -674,43 +689,52 @@ interface Medicamento {
             </div>
           }
           <div class="med-form">
-            <div class="med-form-grid">
+            <div class="med-form-grid-new">
+              <!-- Fila 1: Nombre genérico (autocompletado) + Nombre comercial -->
               <div class="field">
-                <label>Medicamento *</label>
-                <p-autoComplete [(ngModel)]="nuevoMed.nombre"
+                <label>Nombre Genérico (con dosis) <span class="req">*</span></label>
+                <p-autoComplete [(ngModel)]="nuevoMed.nombreGenerico"
                                 [suggestions]="sugerenciasMed()"
                                 (completeMethod)="buscarSugerencias($event)"
                                 (onSelect)="seleccionarSugerencia($event)"
-                                field="nombre" [minLength]="2"
-                                placeholder="Nombre del medicamento..."
+                                field="nombreGenerico" [minLength]="2"
+                                placeholder="Ej: Ibuprofeno 400 mg"
                                 styleClass="w-full" inputStyleClass="w-full"
-                                [showEmptyMessage]="true" emptyMessage="Se guardará como nuevo">
-                  <ng-template let-med pTemplate="item">
+                                [showEmptyMessage]="true" emptyMessage="Se registrará como nuevo">
+                  <ng-template let-m pTemplate="item">
                     <div class="sugerencia-item">
-                      <span class="sug-nombre">{{ med.nombre }}</span>
-                      @if (med.dosisSugerida) { <span class="sug-detalle">{{ med.dosisSugerida }}</span> }
-                      <span class="sug-usos">{{ med.vecesUsado }}x</span>
+                      <div class="sug-bloque">
+                        <span class="sug-nombre">{{ m.nombreGenerico }}</span>
+                        @if (m.nombreComercial) {
+                          <span class="sug-comercial">{{ m.nombreComercial }}</span>
+                        }
+                      </div>
+                      <span class="sug-usos">{{ m.vecesUsado }}x</span>
                     </div>
                   </ng-template>
                 </p-autoComplete>
               </div>
               <div class="field">
-                <label>Dosis *</label>
-                <input pInputText [(ngModel)]="nuevoMed.dosis" placeholder="Ej: 500 mg" class="w-full" />
+                <label>Nombre Comercial</label>
+                <input pInputText [(ngModel)]="nuevoMed.nombreComercial"
+                       placeholder="Ej: BUPREX FLASH" class="w-full"
+                       style="text-transform:uppercase" />
+              </div>
+              <!-- Fila 2: Presentación + Indicaciones -->
+              <div class="field">
+                <label>Presentación y Cantidad</label>
+                <input pInputText [(ngModel)]="nuevoMed.presentacion"
+                       placeholder="Ej: Tabletas #10 (diez)" class="w-full" />
               </div>
               <div class="field">
-                <label>Cantidad</label>
-                <input pInputText [(ngModel)]="nuevoMed.cantidad" placeholder="Ej: 10 tabletas" class="w-full" />
-              </div>
-              <div class="field field-full">
-                <label>Indicaciones de administración</label>
+                <label>Indicaciones de Administración</label>
                 <input pInputText [(ngModel)]="nuevoMed.indicaciones"
-                       placeholder="Ej: 1 tableta cada 8 horas por 7 días" class="w-full" />
+                       placeholder="Ej: 1 tab cada 8 horas por 3 días" class="w-full" />
               </div>
             </div>
             <p-button label="Agregar Medicamento" icon="pi pi-plus"
                       styleClass="btn-agregar"
-                      [disabled]="!nuevoMed.nombre || !nuevoMed.dosis"
+                      [disabled]="!nuevoMed.nombreGenerico"
                       (onClick)="agregarMedicamento()" />
           </div>
         </div>
@@ -874,6 +898,14 @@ interface Medicamento {
     :deep(.dialog-receta .p-dialog-header) { background:linear-gradient(135deg,#0a2342,#1a4a7a); color:white; border-radius:12px 12px 0 0; }
     :deep(.dialog-receta .p-dialog-header .p-dialog-title) { font-weight:700; }
     :deep(.dialog-receta .p-dialog-header-icons .p-dialog-header-close) { color:white; }
+    .receta-diag-banner {
+      display:flex; align-items:center; gap:8px;
+      background:#f0fdf4; border:1px solid #86efac;
+      border-radius:10px; padding:.6rem 1rem;
+      font-size:.85rem; color:#15803d; margin-bottom:.75rem;
+    }
+    .receta-diag-banner .pi { color:#16a34a; flex-shrink:0; }
+    .receta-diag-lbl { font-weight:700; flex-shrink:0; }
     .receta-body { display:flex; flex-direction:column; gap:0; }
     .receta-seccion { padding:1.25rem 0; }
     .receta-sec-titulo { display:flex; align-items:center; gap:8px; font-size:.95rem; font-weight:700; color:#0a2342; margin-bottom:1rem; padding-bottom:.5rem; border-bottom:2px solid #fce4ec; }
@@ -886,12 +918,16 @@ interface Medicamento {
     .med-detalle { font-size:.78rem; color:#c2185b; font-weight:600; }
     .med-ind     { font-size:.75rem; color:#64748b; }
     .med-form { background:#f8fafc; border-radius:12px; padding:1rem; border:1px dashed #e2e8f0; }
-    .med-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.8rem; margin-bottom:.8rem; }
-    :deep(.btn-agregar) { background:#fce4ec !important; color:#c2185b !important; border:1px solid #f8bbd0 !important; font-weight:700 !important; }
-    .sugerencia-item { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-    .sug-nombre  { font-weight:600; color:#0a2342; font-size:.85rem; }
-    .sug-detalle { font-size:.75rem; color:#64748b; flex:1; }
-    .sug-usos    { background:#fce4ec; color:#c2185b; font-size:.68rem; font-weight:700; padding:1px 6px; border-radius:10px; }
+    .med-form-grid-new { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin-bottom:.8rem; }
+    @media (max-width:600px) { .med-form-grid-new { grid-template-columns:1fr; } }
+    .med-nombre   { font-weight:700; color:#0a2342; font-size:.9rem; }
+    .med-comercial{ font-size:.82rem; color:#7c3aed; font-weight:700; text-decoration:underline; }
+    .med-detalle  { font-size:.78rem; color:#c2185b; font-weight:600; }
+    .med-ind      { font-size:.75rem; color:#64748b; }
+    .sug-bloque   { display:flex; flex-direction:column; gap:1px; flex:1; }
+    .sug-nombre   { font-weight:600; color:#0a2342; font-size:.85rem; }
+    .sug-comercial{ font-size:.72rem; color:#7c3aed; font-weight:600; }
+    .sug-usos     { background:#fce4ec; color:#c2185b; font-size:.68rem; font-weight:700; padding:1px 6px; border-radius:10px; flex-shrink:0; }
     .receta-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; }
   `]
 })
@@ -937,7 +973,8 @@ export class HistoriaFormComponent implements OnInit {
   medicamentos       = signal<Medicamento[]>([]);
   recetaPrescripcion = '';
   recetaProximaCita  = '';
-  nuevoMed: Medicamento = { nombre:'', dosis:'', cantidad:'', indicaciones:'' };
+  recetaDiagnostico  = '';  // diagnóstico precargado del formulario
+  nuevoMed: Medicamento = { nombreGenerico:'', nombreComercial:'', presentacion:'', indicaciones:'' };
 
   opTipos = [
     { label:'Imagen',                value:'IMAGEN'               },
@@ -1233,6 +1270,14 @@ export class HistoriaFormComponent implements OnInit {
     this.form.patchValue({ codigoCie10: item.codigo });
     this.cie10Input            = item.codigo;
     this.cie10DescSeleccionada = item.descripcion;
+
+    // Precarga el campo diagnósticoPrincipal si está vacío
+    const diagActual = this.form.get('diagnosticoPrincipal')?.value;
+    if (!diagActual || diagActual.trim() === '') {
+      this.form.patchValue({
+        diagnosticoPrincipal: item.descripcion
+      });
+    }
   }
 
   limpiarCie10(): void {
@@ -1289,9 +1334,23 @@ export class HistoriaFormComponent implements OnInit {
   }
 
   private precargarDesdeFormulario(): void {
-    this.recetaPrescripcion = this.form.get('indicaciones')?.value ?? '';
+    const indicaciones = this.form.get('indicaciones')?.value ?? '';
+    const diagnostico  = this.form.get('diagnosticoPrincipal')?.value ?? '';
+    const codigoCie    = this.form.get('codigoCie10')?.value ?? '';
+
+    // Precarga prescripción con indicaciones + diagnóstico para la receta
+    this.recetaPrescripcion = indicaciones;
+
+    // Precarga próxima cita
     const pc = this.form.get('proximaCita')?.value;
     if (pc instanceof Date) this.recetaProximaCita = pc.toLocaleDateString('es-EC');
+
+    // Precarga diagnóstico en la receta si viene del formulario
+    if (diagnostico || codigoCie) {
+      this.recetaDiagnostico = codigoCie
+        ? `${diagnostico} (${codigoCie})`
+        : diagnostico;
+    }
   }
 
   guardarReceta(): void {
@@ -1315,10 +1374,14 @@ export class HistoriaFormComponent implements OnInit {
   cerrarReceta(): void { this.dialogReceta = false; }
 
   agregarMedicamento(): void {
-    if (!this.nuevoMed.nombre || !this.nuevoMed.dosis) return;
+    if (!this.nuevoMed.nombreGenerico) return;
     this.medicamentos.update(list => [...list, { ...this.nuevoMed }]);
-    this.medSvc.registrarUso(this.nuevoMed).subscribe({ error: () => {} });
-    this.nuevoMed = { nombre:'', dosis:'', cantidad:'', indicaciones:'' };
+    // Solo registra nombre genérico + comercial, sin dosis ni cantidades
+    this.medSvc.registrarUso({
+      nombreGenerico:  this.nuevoMed.nombreGenerico,
+      nombreComercial: this.nuevoMed.nombreComercial
+    } as any).subscribe({ error: () => {} });
+    this.nuevoMed = { nombreGenerico:'', nombreComercial:'', presentacion:'', indicaciones:'' };
   }
 
   buscarSugerencias(event: { query: string }): void {
@@ -1329,11 +1392,13 @@ export class HistoriaFormComponent implements OnInit {
   }
 
   seleccionarSugerencia(event: any): void {
-    const med: MedicamentoSugerencia = event.value ?? event;
-    this.nuevoMed.nombre       = med.nombre;
-    this.nuevoMed.dosis        = med.dosisSugerida ?? '';
-    this.nuevoMed.cantidad     = med.cantidadSugerida ?? '';
-    this.nuevoMed.indicaciones = med.indicacionesSugeridas ?? '';
+    const med = event.value ?? event;
+    // Al seleccionar sugerencia solo se llenan genérico y comercial
+    // La presentación e indicaciones las escribe el médico cada vez
+    this.nuevoMed.nombreGenerico  = med.nombreGenerico ?? med.nombre ?? '';
+    this.nuevoMed.nombreComercial = med.nombreComercial ?? '';
+    this.nuevoMed.presentacion    = '';
+    this.nuevoMed.indicaciones    = '';
   }
 
   eliminarMedicamento(idx: number): void {
@@ -1364,9 +1429,12 @@ export class HistoriaFormComponent implements OnInit {
   }
 
   private buildRecetaPayload() {
-    return { medicamentos: this.medicamentos(),
+    return {
+      medicamentos: this.medicamentos(),
       prescripcion: this.recetaPrescripcion,
-      proximaCita:  this.recetaProximaCita };
+      proximaCita:  this.recetaProximaCita,
+      diagnostico:  this.recetaDiagnostico,
+    };
   }
 
   // ── IMC OMS ───────────────────────────────────────────────────────────────
@@ -1414,52 +1482,11 @@ export class HistoriaFormComponent implements OnInit {
   }
 
   imcPosicion(): number {
-    const imc = this.imc();
-
-    if (imc == null)
-      return 0;
-
-    // Delgadez severa
-    if (imc < 16) {
-      return (imc - 14) / (16 - 14) * 8;
-    }
-
-    // Delgadez moderada
-    if (imc < 17) {
-      return 8 + ((imc - 16) / 1) * 6;
-    }
-
-    // Delgadez leve
-    if (imc < 18.5) {
-      return 14 + ((imc - 17) / 1.5) * 9;
-    }
-
-    // Normal
-    if (imc < 25) {
-      return 23 + ((imc - 18.5) / 6.5) * 24;
-    }
-
-    // Sobrepeso
-    if (imc < 30) {
-      return 47 + ((imc - 25) / 5) * 20;
-    }
-
-    // Obesidad I
-    if (imc < 35) {
-      return 67 + ((imc - 30) / 5) * 14;
-    }
-
-    // Obesidad II
-    if (imc < 40) {
-      return 81 + ((imc - 35) / 5) * 10;
-    }
-
-    // Obesidad III
-    if (imc <= 44) {
-      return 91 + ((imc - 40) / 4) * 9;
-    }
-
-    return 100;
+    const v = this.imc();
+    if (!v) return 0;
+    const min = 14, max = 44;
+    const clamped = Math.min(Math.max(v, min), max);
+    return Math.round(((clamped - min) / (max - min)) * 100);
   }
 
   isInvalid(f: string): boolean {
