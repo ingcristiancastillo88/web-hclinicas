@@ -1196,9 +1196,13 @@ export class HistoriaFormComponent implements OnInit {
     const toISO = (d: any) => d instanceof Date ? d.toISOString().split('T')[0] : d;
     const payload = {
       ...raw,
-      fechaConsulta: toISO(raw.fechaConsulta),
-      proximaCita:   toISO(raw.proximaCita),
-      codigosCie10Secundarios: this.cie10Secundarios().map(s => s.codigo),
+      // Fechas del formulario que vienen como Date y deben convertirse a string ISO
+      fechaConsulta:           toISO(raw.fechaConsulta),
+      proximaCita:             toISO(raw.proximaCita),
+      fumConsulta:             toISO(this.fumConsulta),       // FUM del módulo materno
+      fechaUltimaMenustracion: toISO(raw.fechaUltimaMenustracion),
+      // CIE-10 secundarios desde el signal
+      codigosCie10Secundarios: this.cie10Secundarios().map((s: any) => s.codigo),
     };
 
     if (this.esEdicion()) {
